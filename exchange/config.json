@@ -1,0 +1,29 @@
+{
+  "rpc_url": "",
+  "local_mode": false,
+  "local_rpc_url": "http://127.0.0.1:8545",
+
+  "accounts": {
+    "deployer_private_key": "",
+    "user1_private_key":    "",
+    "user2_private_key":    "",
+    "operator_private_key": ""
+  },
+
+  "contracts": {
+    "ctf":      "0x5516570Aa7A15523C9C765D39A8acCe7B130F345",
+    "exchange": "0x1AB830a4886B6644393750d923E2f502C809ffd1",
+    "usdc":     "0xEE702898dc8110b0757963518BdD847AA8B4D476"
+  },
+
+  "market": {
+    "ancillary_data":      "q: Will BNB price exceed $1000 by 2025-12-31? res_data: p1: 0, p2: 1, p3: 0.5",
+    "proposal_bond_usdc":  100,
+    "liveness_seconds":    120
+  },
+
+  "gas": {
+    "price_gwei": 3,
+    "limit":      3000000
+  }
+}

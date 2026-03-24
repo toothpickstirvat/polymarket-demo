@@ -1,0 +1,94 @@
+✓ 配置已加载: config.json
+✓ 已连接: https://bnb-testnet.g.alchemy.com/v2/lJ58uH7eYml95RsxmVGLL  Chain ID: 97
+  Deployer/DVM:  0x068a1f590819A507e5051edFAba0e6B00846ac97
+  User1 (买YES): 0xEf77f95c7D643fDD0D00f0EF58A2A4F248DF7d3B
+  User2 (买NO):  0xD5e2f45A6bf3F0a58BD51Bd4f11c6cA667e7D141
+  Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
+
+────────────────────────────────────────────────────────────
+  步骤 1: 部署 MockOOv2 / MockAddressWhitelist / UmaCtfAdapter
+────────────────────────────────────────────────────────────
+✓ MockAddressWhitelist: 0x3Ed62922789C8356edcc81CCE98e7150e95331ca
+✓ MockOOv2:             0xE76519029381D03205C02521A96380f05963652d
+✓ UmaCtfAdapter:        0x8fdAcDfd17FcE167fB3Be0F92D254Fc0809BF48d
+✓ operator 权限已存在
+
+────────────────────────────────────────────────────────────
+  步骤 2: 铸造测试 USDC（使用 Ming 的 USDC deposit 接口）
+────────────────────────────────────────────────────────────
+✓ User1 USDC 余额: 126000.00
+✓ User2 USDC 余额: 121100.00
+
+────────────────────────────────────────────────────────────
+  步骤 3: 初始化市场问题（adapter.initialize）
+────────────────────────────────────────────────────────────
+  问题原文:      q: Will BNB price exceed $1000 by 2025-12-31? res_data: p1: 0, p2: 1, p3: 0.5
+  proposalBond:  100000000 USDC
+  liveness:      120 秒
+✓ questionId:   0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
+✓ requestTime:  1774284376
+✓ conditionId:  0x482f89c18c2dc214342d8d5bcee3bf948b136b50b008b0d12770ade44cd948a9
+✓ YES tokenId:  109738155576875949175951820294951183963084141714990270024584924735431879192864
+✓ NO  tokenId:  64150102152461265884998338738028312621636670130625477712207990618490743260107
+✓ registerToken 完成（YES/NO pair 已注册到 CTFExchange）
+
+────────────────────────────────────────────────────────────
+  步骤 4: 用户拆分 USDC → YES/NO 代币（CTF.splitPosition）
+────────────────────────────────────────────────────────────
+✓ User1: YES=1000000000  NO=1000000000（单位: 1e6）
+✓ User2: YES=1000000000  NO=1000000000（单位: 1e6）
+
+────────────────────────────────────────────────────────────
+  步骤 5: 订单撮合（CTFExchange.matchOrders, EIP-712 签名）
+────────────────────────────────────────────────────────────
+  链上 domainSeparator: 0xd658ca0a9a36ded29307f2906c660ee632cedb8527714b63c6e900a82101d411
+  本地 domainSeparator: 0xd658ca0a9a36ded29307f2906c660ee632cedb8527714b63c6e900a82101d411
+  ✓ domainSeparator 一致
+  isOperator(0x393AE179dD5F2F49403893A97cE1201B9F6CB641): true
+  User1 手持 YES+NO，想卖掉 NO 换 USDC
+  User2 手持 YES+NO，想卖掉 YES 换 USDC
+  → User1 SELL NO 1000 @ 0.5 USDC，User2 BUY NO 1000 @ 0.5 USDC
+    ✓ 签名验证: recovered=0xEf77f95c7D643fDD0D00f0EF58A2A4F248DF7d3B
+✓ Maker Order 已签名（User1 SELL 1000000000 NO）
+    ✓ 签名验证: recovered=0xD5e2f45A6bf3F0a58BD51Bd4f11c6cA667e7D141
+✓ Taker Order 已签名（User2 BUY 1000000000 NO）
+✓ matchOrders 成功！
+  User1: YES=1000000000  NO=0  USDC=125500.00
+  User2: YES=1000000000  NO=2000000000  USDC=119600.00
+  结果: User1 卖掉 NO 得到 500 USDC，User2 买入 NO
+
+────────────────────────────────────────────────────────────
+  步骤 6: 提案市场结果（OOv2.proposePrice）
+────────────────────────────────────────────────────────────
+✓ 已提案 YES（price=1e18），liveness=120秒
+
+────────────────────────────────────────────────────────────
+  步骤 7: 等待 liveness 结束
+────────────────────────────────────────────────────────────
+→ 等待 120 秒... 15s 30s 45s 60s 75s 90s 105s 120s ✓
+
+────────────────────────────────────────────────────────────
+  步骤 8: 结算市场（adapter.resolve → CTF.reportPayouts）
+────────────────────────────────────────────────────────────
+✓ OO.settle 完成
+✓ adapter.resolve 完成 → CTF.reportPayouts([1e18, 0]) → YES 赢！
+
+────────────────────────────────────────────────────────────
+  步骤 9: 赎回（CTF.redeemPositions）
+────────────────────────────────────────────────────────────
+✓ User1 赎回 YES: 125500.00 → 126500.00 USDC（增加 1000.00）
+✓ User2 赎回 NO:  119600.00 → 119600.00 USDC（NO 赢 0，损失 0.00）
+
+────────────────────────────────────────────────────────────
+  完整流程演示成功！
+────────────────────────────────────────────────────────────
+
+已部署的新合约地址：
+  MockAddressWhitelist : 0x3Ed62922789C8356edcc81CCE98e7150e95331ca
+  MockOOv2             : 0xE76519029381D03205C02521A96380f05963652d
+  UmaCtfAdapter        : 0x8fdAcDfd17FcE167fB3Be0F92D254Fc0809BF48d
+
+复用 Ming 的合约：
+  ConditionalTokens    : 0x5516570Aa7A15523C9C765D39A8acCe7B130F345
+  CTFExchange          : 0x1AB830a4886B6644393750d923E2f502C809ffd1
+  USDC                 : 0xEE702898dc8110b0757963518BdD847AA8B4D476

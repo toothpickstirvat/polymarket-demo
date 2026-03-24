@@ -1,0 +1,10 @@
+.idea
+.vscode
+.claude
+
+cache/
+out/
+
+*.env
+
+
