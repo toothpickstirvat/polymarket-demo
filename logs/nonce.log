@@ -8,16 +8,16 @@
 ────────────────────────────────────────────────────────────
   步骤 1: 部署 MockOOv2 / MockAddressWhitelist / UmaCtfAdapter
 ────────────────────────────────────────────────────────────
-✓ MockAddressWhitelist: 0x9b0171f827e2C270C602b3FE4d3ab0b85Eb89e9F
-✓ MockOOv2:             0xD93f0B185D0ece45E0e9eBF51Ca25D134436C412
-✓ UmaCtfAdapter:        0x2DD1504137622a7e52b20b863506a34d3616b451
+✓ MockAddressWhitelist: 0xfA99a300439B3De90B4cde04c069528EA432D5c5
+✓ MockOOv2:             0xFee15B93ACC4C9f3bbC30e82ce25082911eCFF57
+✓ UmaCtfAdapter:        0xe4dF023de5354611B89A5EC15Bafca7B5889A987
 ✓ operator 权限已存在
 
 ────────────────────────────────────────────────────────────
   步骤 2: 铸造测试 USDC
 ────────────────────────────────────────────────────────────
-✓ User1 USDC 余额: 155500.00
-✓ User2 USDC 余额: 148700.00
+✓ User1 USDC 余额: 165000.00
+✓ User2 USDC 余额: 157200.00
 
 ────────────────────────────────────────────────────────────
   步骤 3: 初始化市场（adapter.initialize）
@@ -26,16 +26,16 @@
   proposalBond: 100000000 USDC
   liveness:     120 秒
 ✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
-✓ requestTime: 1774324426
-✓ conditionId: 0xa236233bbec322384101c8e77d7df033c66e82b6f367bec3468db9320d5f9b3c
-✓ YES tokenId: 55618161264867617899367095193925322927670017084821975410626381769995442214822
-✓ NO  tokenId: 72718878490100446681487539967933265080287105142860230826931267238199117546137
+✓ requestTime: 1774325170
+✓ conditionId: 0xe8247626a6f6d2a7d3c1ddfb404b86963d01ca7b706e19cf0237faa83ec96f78
+✓ YES tokenId: 77939044587824643974283241170682472796065362589590555865822937020292676234349
+✓ NO  tokenId: 92543216882889303383574547678356713220150483862486925132788316802308765061350
 ✓ registerToken 完成
 
 ────────────────────────────────────────────────────────────
   步骤 4: 拆分 USDC → YES/NO 代币（CTF.splitPosition）
 ────────────────────────────────────────────────────────────
-✓ User1: YES=1000000000  NO=1000000000
+✓ User1: YES=0  NO=1000000000
 ✓ User2: YES=1000000000  NO=1000000000
 
 ────────────────────────────────────────────────────────────
@@ -43,29 +43,29 @@
 ────────────────────────────────────────────────────────────
   User1 SELL 1000 NO @ 0.5 USDC，User2 BUY 1000 NO @ 0.5 USDC
 ✓ matchOrders 成功
-  User1: YES=1000000000  NO=0  USDC=155000.00
-  User2: YES=1000000000  NO=2000000000  USDC=147200.00
+  User1: YES=1000000000  NO=0  USDC=164500.00
+  User2: YES=1000000000  NO=2000000000  USDC=155700.00
 
 ────────────────────────────────────────────────────────────
-  初始状态：User1 nonce=0，User2 nonce=0
+  初始状态：User1 nonce=1，User2 nonce=1
 ────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────
-  场景一：构造 orderA/B/C（nonce=0）和 orderD（nonce=1）
+  场景一：构造 orderA/B/C（nonce=1）和 orderD（nonce=2）
 ────────────────────────────────────────────────────────────
-  orderA nonce=0，orderB nonce=0，orderC nonce=0，orderD nonce=1
-✗ orderA（nonce=0）撮合失败 → 不符合预期
-✓ orderD（nonce=1）撮合失败 → 符合预期（nonce 不匹配，revert InvalidNonce）
-  此时 orderB/C（nonce=0）仍然有效（同 nonce 下多订单互不影响）
+  orderA nonce=1，orderB nonce=1，orderC nonce=1，orderD nonce=2
+✓ orderA（nonce=1）撮合成功 → 符合预期（nonce 匹配）
+✓ orderD（nonce=2）撮合失败 → 符合预期（nonce 不匹配，revert InvalidNonce）
+  此时 orderB/C（nonce=1）仍然有效（同 nonce 下多订单互不影响）
 
 ────────────────────────────────────────────────────────────
   场景二：User1 调用 incrementNonce()
 ────────────────────────────────────────────────────────────
-✓ incrementNonce() 完成，User1 nonce: 0 → 1
-✓ orderB（nonce=0）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）
-  User2 当前 nonce=0，需要也 incrementNonce 才能让 takerD 有效
-✓ User2 incrementNonce() 完成，nonce=1
-✗ orderD（nonce=1）撮合失败 → 不符合预期
+✓ incrementNonce() 完成，User1 nonce: 1 → 2
+✓ orderB（nonce=1）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）
+  User2 当前 nonce=1，需要也 incrementNonce 才能让 takerD 有效
+✓ User2 incrementNonce() 完成，nonce=2
+✓ orderD（nonce=2）撮合成功 → 符合预期（incrementNonce 后新 nonce 订单有效）
 
 ────────────────────────────────────────────────────────────
   Nonce 验证完成

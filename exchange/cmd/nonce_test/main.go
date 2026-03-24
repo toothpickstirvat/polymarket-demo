@@ -22,20 +22,21 @@ import (
 	ex "polymarket-exchange"
 )
 
-// buildOrder 构造一个 SELL NO 订单并签名，nonce 由调用方指定。
+// buildOrder 构造一个 SELL YES 订单并签名，nonce 由调用方指定。
+// 步骤 5 后 User1 有 1000 YES、0 NO，所以用 YES 代币避免余额不足。
 func buildOrder(ctx *ex.MarketContext, nonce *big.Int) *ex.CTFOrder {
 	order := &ex.CTFOrder{
-		Salt:        big.NewInt(rand.Int63()),
-		Maker:       ctx.User1Addr,
-		Signer:      ctx.User1Addr,
-		Taker:       common.Address{},
-		TokenId:     ctx.NoTokenId,
-		MakerAmount: ex.ToUsdc(100), // SELL 100 NO
-		TakerAmount: ex.ToUsdc(50),  // 期望收 50 USDC（@ 0.5）
-		Expiration:  big.NewInt(time.Now().Unix() + 3600),
-		Nonce:       nonce,
-		FeeRateBps:  big.NewInt(0),
-		Side:        1, // SELL
+		Salt:          big.NewInt(rand.Int63()),
+		Maker:         ctx.User1Addr,
+		Signer:        ctx.User1Addr,
+		Taker:         common.Address{},
+		TokenId:       ctx.YesTokenId,
+		MakerAmount:   ex.ToUsdc(100), // SELL 100 YES
+		TakerAmount:   ex.ToUsdc(50),  // 期望收 50 USDC（@ 0.5）
+		Expiration:    big.NewInt(time.Now().Unix() + 3600),
+		Nonce:         nonce,
+		FeeRateBps:    big.NewInt(0),
+		Side:          1, // SELL
 		SignatureType: 0,
 	}
 	if err := ex.SignOrder(order, ctx.User1Key, ctx.ChainID, ctx.ExchangeAddr); err != nil {
@@ -44,20 +45,20 @@ func buildOrder(ctx *ex.MarketContext, nonce *big.Int) *ex.CTFOrder {
 	return order
 }
 
-// buildBuyOrder 构造一个配套的 BUY NO 订单（User2），用于触发撮合。
+// buildBuyOrder 构造一个配套的 BUY YES 订单（User2），用于触发撮合。
 func buildBuyOrder(ctx *ex.MarketContext, nonce *big.Int) *ex.CTFOrder {
 	order := &ex.CTFOrder{
-		Salt:        big.NewInt(rand.Int63()),
-		Maker:       ctx.User2Addr,
-		Signer:      ctx.User2Addr,
-		Taker:       common.Address{},
-		TokenId:     ctx.NoTokenId,
-		MakerAmount: ex.ToUsdc(50),  // BUY：出 50 USDC
-		TakerAmount: ex.ToUsdc(100), // 期望收 100 NO
-		Expiration:  big.NewInt(time.Now().Unix() + 3600),
-		Nonce:       nonce,
-		FeeRateBps:  big.NewInt(0),
-		Side:        0, // BUY
+		Salt:          big.NewInt(rand.Int63()),
+		Maker:         ctx.User2Addr,
+		Signer:        ctx.User2Addr,
+		Taker:         common.Address{},
+		TokenId:       ctx.YesTokenId,
+		MakerAmount:   ex.ToUsdc(50),  // BUY：出 50 USDC
+		TakerAmount:   ex.ToUsdc(100), // 期望收 100 YES
+		Expiration:    big.NewInt(time.Now().Unix() + 3600),
+		Nonce:         nonce,
+		FeeRateBps:    big.NewInt(0),
+		Side:          0, // BUY
 		SignatureType: 0,
 	}
 	if err := ex.SignOrder(order, ctx.User2Key, ctx.ChainID, ctx.ExchangeAddr); err != nil {
