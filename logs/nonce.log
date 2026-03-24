@@ -1,0 +1,78 @@
+✓ 配置已加载: config.json
+✓ 已连接: https://bnb-testnet.g.alchemy.com/v2/lJ58uH7eYml95RsxmVGLL  Chain ID: 97
+  Deployer/DVM:  0x068a1f590819A507e5051edFAba0e6B00846ac97
+  User1 (买YES): 0xEf77f95c7D643fDD0D00f0EF58A2A4F248DF7d3B
+  User2 (买NO):  0xD5e2f45A6bf3F0a58BD51Bd4f11c6cA667e7D141
+  Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
+
+────────────────────────────────────────────────────────────
+  步骤 1: 部署 MockOOv2 / MockAddressWhitelist / UmaCtfAdapter
+────────────────────────────────────────────────────────────
+✓ MockAddressWhitelist: 0x9b0171f827e2C270C602b3FE4d3ab0b85Eb89e9F
+✓ MockOOv2:             0xD93f0B185D0ece45E0e9eBF51Ca25D134436C412
+✓ UmaCtfAdapter:        0x2DD1504137622a7e52b20b863506a34d3616b451
+✓ operator 权限已存在
+
+────────────────────────────────────────────────────────────
+  步骤 2: 铸造测试 USDC
+────────────────────────────────────────────────────────────
+✓ User1 USDC 余额: 155500.00
+✓ User2 USDC 余额: 148700.00
+
+────────────────────────────────────────────────────────────
+  步骤 3: 初始化市场（adapter.initialize）
+────────────────────────────────────────────────────────────
+  问题原文:     q: Will BNB price exceed $1000 by 2025-12-31? res_data: p1: 0, p2: 1, p3: 0.5
+  proposalBond: 100000000 USDC
+  liveness:     120 秒
+✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
+✓ requestTime: 1774324426
+✓ conditionId: 0xa236233bbec322384101c8e77d7df033c66e82b6f367bec3468db9320d5f9b3c
+✓ YES tokenId: 55618161264867617899367095193925322927670017084821975410626381769995442214822
+✓ NO  tokenId: 72718878490100446681487539967933265080287105142860230826931267238199117546137
+✓ registerToken 完成
+
+────────────────────────────────────────────────────────────
+  步骤 4: 拆分 USDC → YES/NO 代币（CTF.splitPosition）
+────────────────────────────────────────────────────────────
+✓ User1: YES=1000000000  NO=1000000000
+✓ User2: YES=1000000000  NO=1000000000
+
+────────────────────────────────────────────────────────────
+  步骤 5: 订单撮合（CTFExchange.matchOrders）
+────────────────────────────────────────────────────────────
+  User1 SELL 1000 NO @ 0.5 USDC，User2 BUY 1000 NO @ 0.5 USDC
+✓ matchOrders 成功
+  User1: YES=1000000000  NO=0  USDC=155000.00
+  User2: YES=1000000000  NO=2000000000  USDC=147200.00
+
+────────────────────────────────────────────────────────────
+  初始状态：User1 nonce=0，User2 nonce=0
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  场景一：构造 orderA/B/C（nonce=0）和 orderD（nonce=1）
+────────────────────────────────────────────────────────────
+  orderA nonce=0，orderB nonce=0，orderC nonce=0，orderD nonce=1
+✗ orderA（nonce=0）撮合失败 → 不符合预期
+✓ orderD（nonce=1）撮合失败 → 符合预期（nonce 不匹配，revert InvalidNonce）
+  此时 orderB/C（nonce=0）仍然有效（同 nonce 下多订单互不影响）
+
+────────────────────────────────────────────────────────────
+  场景二：User1 调用 incrementNonce()
+────────────────────────────────────────────────────────────
+✓ incrementNonce() 完成，User1 nonce: 0 → 1
+✓ orderB（nonce=0）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）
+  User2 当前 nonce=0，需要也 incrementNonce 才能让 takerD 有效
+✓ User2 incrementNonce() 完成，nonce=1
+✗ orderD（nonce=1）撮合失败 → 不符合预期
+
+────────────────────────────────────────────────────────────
+  Nonce 验证完成
+────────────────────────────────────────────────────────────
+
+【结论】
+  1. 同一 nonce 下可同时存在多个有效订单（A/B/C）
+  2. nonce 不匹配的订单无效（D 在 nonce=N 时 revert）
+  3. incrementNonce() 使旧 nonce 的所有订单失效（B/C 作废）
+  4. incrementNonce() 后新 nonce 订单生效（D 可成交）

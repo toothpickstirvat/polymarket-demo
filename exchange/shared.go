@@ -212,6 +212,7 @@ const ExchangeABI = `[
   {"type":"function","name":"isOperator","inputs":[{"name":"operator","type":"address"}],"outputs":[{"name":"","type":"bool"}],"stateMutability":"view"},
   {"type":"function","name":"isAdmin","inputs":[{"name":"admin","type":"address"}],"outputs":[{"name":"","type":"bool"}],"stateMutability":"view"},
   {"type":"function","name":"nonces","inputs":[{"name":"user","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"incrementNonce","inputs":[],"outputs":[],"stateMutability":"nonpayable"},
   {"type":"function","name":"addOperator","inputs":[{"name":"operator","type":"address"}],"outputs":[],"stateMutability":"nonpayable"},
   {"type":"function","name":"registerToken","inputs":[{"name":"token0","type":"uint256"},{"name":"token1","type":"uint256"},{"name":"conditionId","type":"bytes32"}],"outputs":[],"stateMutability":"nonpayable"},
   {"type":"function","name":"domainSeparator","inputs":[],"outputs":[{"name":"","type":"bytes32"}],"stateMutability":"view"}
@@ -461,6 +462,23 @@ func Send(client *ethclient.Client, auth *bind.TransactOpts, contract *bind.Boun
 		log.Fatalf("%s 链上 revert（txHash: %s）", method, tx.Hash().Hex())
 	}
 	return receipt
+}
+
+// TrySend 与 Send 相同，但链上 revert 时返回 error 而不是 Fatal 退出。
+// 适用于需要主动测试某笔交易是否会失败的场景（如 nonce 验证测试）。
+func TrySend(client *ethclient.Client, auth *bind.TransactOpts, contract *bind.BoundContract, method string, args ...interface{}) (*types.Receipt, error) {
+	tx, err := contract.Transact(auth, method, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s 交易失败: %w", method, err)
+	}
+	receipt, err := bind.WaitMined(context.Background(), client, tx)
+	if err != nil {
+		return nil, fmt.Errorf("%s 等待确认失败: %w", method, err)
+	}
+	if receipt.Status == 0 {
+		return receipt, fmt.Errorf("%s 链上 revert（txHash: %s）", method, tx.Hash().Hex())
+	}
+	return receipt, nil
 }
 
 // CallView 执行只读调用（eth_call），带 5 次重试。
