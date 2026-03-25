@@ -33,7 +33,7 @@ func main() {
 	// 步骤 1-5：部署合约、铸造 USDC、初始化市场、拆分头寸、撮合订单
 	// 执行后状态：
 	//   User1: 1000 YES + 0 NO + ~9500 USDC（卖出了 1000 NO，收到 500 USDC）
-	//   User2: 1000 YES + 2000 NO + ~9000 USDC（买入了 1000 NO，花了 500 USDC）
+	//   User2: 1000 YES + 2000 NO + ~8500 USDC（买入了 1000 NO，花了 500 USDC）
 	ctx := ex.RunCommonSetup(*configPath)
 
 	// ── 步骤 6：提案正确结果（YES 赢）────────────────────────────────────────

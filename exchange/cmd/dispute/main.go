@@ -71,7 +71,7 @@ func main() {
 	// 步骤 1-5：部署合约、铸造 USDC、初始化市场、拆分头寸、撮合订单（与 normal 完全相同）
 	// 执行后状态：
 	//   User1: 1000 YES + 0 NO + ~9500 USDC
-	//   User2: 1000 YES + 2000 NO + ~9000 USDC
+	//   User2: 1000 YES + 2000 NO + ~8500 USDC
 	ctx := ex.RunCommonSetup(*configPath)
 
 	// ── 步骤 6：错误提案（deployer 提案 YES，但实际结果应为 NO）────────────

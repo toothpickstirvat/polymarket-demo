@@ -623,7 +623,7 @@ type MarketContext struct {
 // 步骤概述：
 //  1. 部署 MockAddressWhitelist / MockOOv2 / UmaCtfAdapter
 //  2. 铸造测试 USDC（User1/User2 各 10000）
-//  3. 初始化市场（adapter.initialize → OO requestPrice → CTF prepareCondition）
+//  3. 初始化市场（adapter.initialize → CTF prepareCondition → OO requestPrice）
 //  4. 拆分头寸（splitPosition：每人 1000 USDC → 1000 YES + 1000 NO）
 //  5. 订单撮合（User1 SELL 1000 NO，User2 BUY 1000 NO，价格 0.5 USDC/个）
 func RunCommonSetup(configPath string) *MarketContext {
