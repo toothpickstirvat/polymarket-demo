@@ -39,6 +39,7 @@ go run cmd/match_types/main.go
 * [架构分析](./docs/01-architecture-analysis.md)
 * [测试流程](./docs/04-flow-diagram.md)
 * [测试中的坑](./docs/05-pitfalls.md)
+* [adapter.initialize() 深度解析](./docs/06-initialize-deep-dive.md)
 
 
 ## Logs
