@@ -40,6 +40,7 @@ go run cmd/match_types/main.go
 * [测试流程](./docs/04-flow-diagram.md)
 * [测试中的坑](./docs/05-pitfalls.md)
 * [adapter.initialize() 深度解析](./docs/06-initialize-deep-dive.md)
+* [matchOrders 填充参数详解](./docs/07-match-fill-amounts.md)
 
 
 ## Logs
