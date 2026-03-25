@@ -257,6 +257,159 @@ token 序号，其实是位掩码。
 
 ---
 
+---
+
+## 坑 7：go-ethereum v1.13 复用非空 result slice 导致 "cannot unmarshal" panic
+
+### 现象
+
+在同一个函数中多次调用 `CallView`，第二次调用时 panic：
+
+```
+cannot unmarshal *big.Int in to bool
+```
+
+### 根因
+
+go-ethereum v1.13 的 `BoundContract.Call` 对 `result *[]interface{}` 的处理逻辑分两路：
+
+- `len(*result) == 0`：ABI 解码时新建正确类型填入 slice
+- `len(*result) > 0`：走 `UnpackIntoInterface` 路径，**尝试将新值解码进现有元素的类型**
+
+如果第一次调用（如 `isAdmin`，返回 `bool`）后 slice 里留了一个 `bool`，第二次调用（如 `nonces`，返回 `uint256`）就会因类型不匹配而 panic。
+
+### 解决方法
+
+**每次调用 `CallView` 都声明一个全新的空 slice，绝不复用：**
+
+```go
+// ✗ 错误：复用同一个 slice
+var result []interface{}
+CallView(contract, "isAdmin", &result, addr)   // result 现在有一个 bool
+CallView(contract, "nonces", &result, addr)    // panic: cannot unmarshal *big.Int in to bool
+
+// ✓ 正确：每次用新 slice，或封装成函数
+func readNonce(ctx *MarketContext, addr common.Address) *big.Int {
+    var result []interface{}  // 每次新建
+    CallView(ctx.ExchangeContract, "nonces", &result, addr)
+    return result[0].(*big.Int)
+}
+```
+
+### 教训
+
+**go-ethereum `Call` 的非空 slice 路径是隐患。** 不同方法的返回类型不同，复用 slice 会触发类型断言失败。养成"一个 CallView 对应一个新 slice"的习惯，或将每种查询封装成独立辅助函数。
+
+---
+
+## 坑 8：测试 USDC 余额跨轮次累积
+
+### 现象
+
+第二次（或之后）运行测试脚本时，User1/User2 的 USDC 余额远大于 10000，例如：
+
+```
+User1 USDC: 19500.00  # 上一轮剩余 9500 + 本轮新增 10000
+```
+
+后续步骤的断言或余额校验因此失败。
+
+### 根因
+
+BSC Testnet 上的 MockUSDC（ChildERC20）使用 `deposit(user, amount_as_bytes)` 铸币，每次调用都在原有余额上**累加**，没有任何重置逻辑。测试脚本直接 `deposit` 不会清除上一轮余额。
+
+### 解决方法
+
+铸币前先将用户现有余额转回 deployer，再重新 `deposit` 固定金额：
+
+```go
+for _, info := range []struct{ addr common.Address; key *ecdsa.PrivateKey }{
+    {user1Addr, user1Key}, {user2Addr, user2Key},
+} {
+    var existing []interface{}
+    CallView(usdcContract, "balanceOf", &existing, info.addr)
+    if bal := existing[0].(*big.Int); bal.Sign() > 0 {
+        // 用户自己的私钥签名，将余额退回 deployer
+        Send(client, NewAuth(client, info.key), usdcContract, "transfer", deployerAddr, bal)
+    }
+    // 重新 deposit 固定金额（10000 USDC）
+    depositData := make([]byte, 32)
+    mintAmount.FillBytes(depositData)
+    Send(client, deployerAuth, usdcContract, "deposit", info.addr, depositData)
+}
+```
+
+### 教训
+
+**测试脚本的"初始化"步骤必须显式重置状态，而不是假设链上是干净的。** 对于累加型铸币接口，先清零再铸造是唯一可靠方式。
+
+---
+
+## 坑 9：CTFExchange 的 collateral 地址是 immutable，无法替换
+
+### 现象
+
+尝试部署一个自定义 MockERC20 替换 MockUSDC 以规避余额累积问题，但 `matchOrders` 依然 revert，或资金流向仍然是原始 USDC 合约。
+
+### 根因
+
+`CTFExchange` 合约在部署时将抵押品（USDC）地址声明为 `immutable`：
+
+```solidity
+IERC20 public immutable collateral;
+constructor(address _collateral, ...) {
+    collateral = IERC20(_collateral);
+}
+```
+
+BSC Testnet 上已部署的 CTFExchange 实例的 `collateral` 已固化为原始 ChildERC20 USDC 地址。所有内部 `transferFrom`、`transfer` 都指向该固化地址，**与我们新部署的 MockERC20 无关**。
+
+### 解决方法
+
+不要尝试替换 collateral，应使用坑 8 中的余额重置方案，保持使用原始 MockUSDC 合约。
+
+### 教训
+
+**复用已部署的第三方合约时，必须先阅读其构造函数，确认哪些参数是 `immutable`。** 无法通过换地址绕过的限制，只能从业务逻辑层面适配。
+
+---
+
+## 坑 10：BSC Testnet 交易后立即读链上状态返回滞后数据
+
+### 现象
+
+`matchOrders` 交易已确认（`Send` 返回），紧接着 `CallView` 读取余额，得到的是交易执行**之前**的旧数据。典型例子：
+
+```
+MINT matchOrders 成功
+User1 USDC: 9500.00  ← 应为 9250.00（扣了 250 USDC 后的正确值）
+```
+
+USDC（ERC20）和 ERC1155 余额均可能出现此问题，ERC1155 尤为明显。
+
+### 根因
+
+BSC Testnet 节点对 `eth_call` 有读缓存，不一定立即反映最新区块。BSC 出块约 3 秒，`Send` 等到交易上链即返回，但缓存节点可能仍在服务旧区块的数据。
+
+### 解决方法
+
+在 `matchOrders` 成功后，打印余额快照前等待至少一个出块周期（4 秒）：
+
+```go
+ex.Send(ctx.Client, operatorAuth, ctx.ExchangeContract, "matchOrders", ...)
+fmt.Println("✓ matchOrders 成功")
+time.Sleep(4 * time.Second)  // 等待 RPC 缓存刷新
+printBalances("步骤 X 完成后", ctx)
+```
+
+对于 ERC1155 余额，建议等 8 秒（约 2 个区块）以保证最终一致。
+
+### 教训
+
+**测试网 RPC 的读一致性不是即时的。** 不要假设写入（`Send`）返回后读取就能拿到最新数据。中间快照加等待，最终快照建议 8 秒，是在测试网上得到可靠读数的最简单方法。
+
+---
+
 ## 总结
 
 | # | 错误现象                              | 根本原因                              | 解决方法                                |
@@ -267,3 +420,7 @@ token 序号，其实是位掩码。
 | 4 | 争议后 `proposePrice` 失败             | `priceDisputed()` 更新了 requestTime | 争议后从 adapter 读取新 T2                 |
 | 5 | `getQuestion` 返回值无法类型断言           | go-ethereum 解码 tuple 为匿名 struct   | 用反射 `FieldByName` 提取字段              |
 | 6 | `redeemPositions` 参数混淆            | indexSets 是位掩码，不是 token 序号        | YES=1, NO=2 对应 partition 掩码         |
+| 7 | `CallView` 第二次调用 panic            | go-ethereum v1.13 复用非空 slice 写入旧类型 | 每次 CallView 使用新声明的空 slice          |
+| 8 | 测试 USDC 余额跨轮次累积                  | ChildERC20 `deposit` 累加，无重置逻辑     | 铸币前先 transfer 回 deployer 再重新 deposit |
+| 9 | 替换 MockERC20 后 matchOrders 仍 revert | CTFExchange collateral 是 immutable | 保持用原始 USDC，用余额重置方案               |
+| 10 | 交易后立即读取余额得到旧数据                  | BSC Testnet RPC 读缓存滞后             | 每次 matchOrders 后 sleep 4-8 秒再读余额   |

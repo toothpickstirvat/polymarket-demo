@@ -1,0 +1,99 @@
+✓ 配置已加载: config.json
+✓ 已连接: https://bnb-testnet.g.alchemy.com/v2/lJ58uH7eYml95RsxmVGLL  Chain ID: 97
+  Deployer/DVM:  0x068a1f590819A507e5051edFAba0e6B00846ac97
+  User1 (买YES): 0xEf77f95c7D643fDD0D00f0EF58A2A4F248DF7d3B
+  User2 (买NO):  0xD5e2f45A6bf3F0a58BD51Bd4f11c6cA667e7D141
+  Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
+
+────────────────────────────────────────────────────────────
+  步骤 1: 部署 MockOOv2 / MockAddressWhitelist / UmaCtfAdapter
+────────────────────────────────────────────────────────────
+✓ MockAddressWhitelist: 0xd1bCe82c29Ea8b22fd61c49494FeefD23fF70FFD
+✓ MockOOv2:             0x1aB97ed081A6c38Df0B0d7134CBE0199FE337Af9
+✓ UmaCtfAdapter:        0x6Dc49dA77d44B0BcdA5cf3Be9C654b2E2DD258a0
+✓ operator 权限已存在
+
+────────────────────────────────────────────────────────────
+  步骤 2: 铸造测试 USDC（先清零存量，再 deposit 10000）
+────────────────────────────────────────────────────────────
+  User1 退回存量 9500.00 USDC → deployer
+✓ User1 USDC 余额: 10000.00
+  User2 退回存量 8500.00 USDC → deployer
+✓ User2 USDC 余额: 10000.00
+
+────────────────────────────────────────────────────────────
+  步骤 3: 初始化市场（adapter.initialize）
+────────────────────────────────────────────────────────────
+  问题原文:     q: Will BNB price exceed $1000 by 2025-12-31? res_data: p1: 0, p2: 1, p3: 0.5
+  proposalBond: 100000000 USDC
+  liveness:     120 秒
+✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
+✓ requestTime: 1774407652
+✓ conditionId: 0xa924224b2a7fb663652aaef25dcf8235f4f55d7bf440d1077188722c9de2dc2d
+✓ YES tokenId: 111817949541210631844321126484434107841608787037278651284923526727664840840945
+✓ NO  tokenId: 22263059352174033443670173129439444015320828923568696064657178113117004218286
+✓ registerToken 完成
+
+────────────────────────────────────────────────────────────
+  步骤 4: 拆分 USDC → YES/NO 代币（CTF.splitPosition）
+────────────────────────────────────────────────────────────
+✓ User1: YES=1000000000  NO=1000000000
+✓ User2: YES=0  NO=0
+
+────────────────────────────────────────────────────────────
+  步骤 5: 订单撮合（CTFExchange.matchOrders）
+────────────────────────────────────────────────────────────
+  User1 SELL 1000 NO @ 0.5 USDC，User2 BUY 1000 NO @ 0.5 USDC
+✓ matchOrders 成功
+  User1: YES=1000000000  NO=0  USDC=9500.00
+  User2: YES=1000000000  NO=2000000000  USDC=8500.00
+
+  [余额快照] 公共初始化完成后
+    User1: YES=1000000000    NO=0             USDC=9500.00
+    User2: YES=1000000000    NO=2000000000    USDC=8500.00
+
+────────────────────────────────────────────────────────────
+  步骤 A: MINT — User1 BUY 500 YES + User2 BUY 500 NO（铸造新代币对）
+────────────────────────────────────────────────────────────
+✓ MINT matchOrders 成功（Exchange 铸造了 500 YES+NO 对）
+
+  [余额快照] 步骤 A（MINT）完成后
+    User1: YES=1500000000    NO=0             USDC=9250.00
+    User2: YES=1000000000    NO=2500000000    USDC=8250.00
+
+────────────────────────────────────────────────────────────
+  步骤 B1: COMPLEMENTARY — User1 BUY 500 YES ← User2 SELL 500 YES（代币换手）
+────────────────────────────────────────────────────────────
+✓ COMPLEMENTARY matchOrders 成功（User2 YES → User1，User1 USDC → User2）
+
+  [余额快照] 步骤 B1（COMPLEMENTARY）完成后
+    User1: YES=2000000000    NO=0             USDC=9000.00
+    User2: YES=500000000     NO=2500000000    USDC=8500.00
+
+────────────────────────────────────────────────────────────
+  步骤 B2: COMPLEMENTARY（反向）— User2 BUY 500 YES ← User1 SELL 500 YES
+────────────────────────────────────────────────────────────
+✓ COMPLEMENTARY（反向）matchOrders 成功（User1 YES → User2，User2 USDC → User1）
+
+  [余额快照] 步骤 B2（COMPLEMENTARY 反向）完成后
+    User1: YES=1500000000    NO=0             USDC=9250.00
+    User2: YES=1000000000    NO=2500000000    USDC=8250.00
+
+────────────────────────────────────────────────────────────
+  步骤 C: MERGE — User1 SELL 500 YES + User2 SELL 500 NO（销毁代币对换回 USDC）
+────────────────────────────────────────────────────────────
+✓ MERGE matchOrders 成功（Exchange 销毁 500 YES+NO 对，各返还 250 USDC）
+→ 等待 8 秒让 RPC 缓存刷新... ✓
+
+  [余额快照] 最终余额（RPC 缓存刷新后）
+    User1: YES=1000000000    NO=0             USDC=9500.00
+    User2: YES=1000000000    NO=2000000000    USDC=8500.00
+
+────────────────────────────────────────────────────────────
+  全部 MatchType 覆盖完成
+────────────────────────────────────────────────────────────
+  ✓ MINT        — 双边 BUY，铸造新代币对（步骤 A）
+  ✓ COMPLEMENTARY — BUY vs SELL，代币换手（步骤 B1 正向）
+  ✓ COMPLEMENTARY — SELL vs BUY，反向换手（步骤 B2 逆向）
+  ✓ MERGE       — 双边 SELL，销毁代币对换回抵押品（步骤 C）
+
