@@ -187,9 +187,9 @@ const WhitelistABI = `[
 //
 // matchOrders 是核心函数，由 operator 调用实现原子撮合。
 // 注意事项：
-//  - 调用前必须先调用 registerToken() 注册代币对，否则会静默 revert（data=0x）
-//  - nonces 使用精确匹配（NonceManager），订单的 Nonce 字段必须等于链上当前值
-//  - 只有 operator 才能调用 matchOrders；admin 才能调用 registerToken
+//   - 调用前必须先调用 registerToken() 注册代币对，否则会静默 revert（data=0x）
+//   - nonces 使用精确匹配（NonceManager），订单的 Nonce 字段必须等于链上当前值
+//   - 只有 operator 才能调用 matchOrders；admin 才能调用 registerToken
 const ExchangeABI = `[
   {"type":"function","name":"matchOrders","inputs":[
     {"name":"takerOrder","type":"tuple","components":[
@@ -719,13 +719,27 @@ func RunCommonSetup(configPath string) *MarketContext {
 	// ── 步骤 2：铸造 USDC ────────────────────────────────────────────────────
 	// BSC Testnet 的 USDC 是 ChildERC20（来自 Polygon Bridge），
 	// deposit(user, amount_as_32bytes) 由 MinterRole 持有者（deployer）铸造。
-	Div("步骤 2: 铸造测试 USDC")
+	//
+	// 为避免多次运行导致余额累积（污染测试结果），步骤 2 开始前先把
+	// User1/User2 的存量 USDC 转回 deployer，确保每次运行从 0 开始再铸造固定金额。
+	Div("步骤 2: 铸造测试 USDC（先清零存量，再 deposit 10000）")
 	mintAmount := ToUsdc(10000)
+	userKeys := map[common.Address]*ecdsa.PrivateKey{
+		user1Addr: user1Key,
+		user2Addr: user2Key,
+	}
 	for _, info := range []struct {
 		addr common.Address
 		name string
 	}{{user1Addr, "User1"}, {user2Addr, "User2"}} {
-		// deposit 的第二个参数是 ABI 编码的 uint256（32 字节大端）
+		// 读取存量余额，若 > 0 则转回 deployer 清零
+		var existing []interface{}
+		CallView(usdcContract, "balanceOf", &existing, info.addr)
+		if bal := existing[0].(*big.Int); bal.Sign() > 0 {
+			Send(client, NewAuth(client, userKeys[info.addr]), usdcContract, "transfer", deployerAddr, bal)
+			fmt.Printf("  %s 退回存量 %.2f USDC → deployer\n", info.name, FromUsdc(bal))
+		}
+		// 铸造固定金额
 		depositData := make([]byte, 32)
 		mintAmount.FillBytes(depositData)
 		Send(client, deployerAuth, usdcContract, "deposit", info.addr, depositData)
@@ -927,7 +941,7 @@ func RunCommonSetup(configPath string) *MarketContext {
 		CTFContract: ctfContract, USDCContract: usdcContract,
 		ExchangeContract: exchangeContract, OOContract: ooContract,
 		AdapterContract: adapterContract,
-		QuestionId: questionId, ConditionId: conditionId,
+		QuestionId:      questionId, ConditionId: conditionId,
 		RequestTime: requestTime, AncillaryData: ancillaryData,
 		ProposalBond: proposalBond, Identifier: identifier,
 		YesTokenId: yesTokenId, NoTokenId: noTokenId,
