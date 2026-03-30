@@ -465,7 +465,7 @@ func Send(client *ethclient.Client, auth *bind.TransactOpts, contract *bind.Boun
 }
 
 // TrySend 与 Send 相同，但链上 revert 时返回 error 而不是 Fatal 退出。
-// 适用于需要主动测试某笔交易是否会失败的场景（如 nonce 验证测试）。
+// 适用于需要主动测试某笔交易是否会失败的场景（如 nonce.log 验证测试）。
 func TrySend(client *ethclient.Client, auth *bind.TransactOpts, contract *bind.BoundContract, method string, args ...interface{}) (*types.Receipt, error) {
 	tx, err := contract.Transact(auth, method, args...)
 	if err != nil {
@@ -866,9 +866,9 @@ func RunCommonSetup(configPath string) *MarketContext {
 	usdcAmount := ToUsdc(500)  // 500e6（USDC 数量，1000 NO * 0.5 USDC/个）
 	expiry := big.NewInt(time.Now().Unix() + 3600)
 
-	// 关键：签名前先从链上读取当前 nonce。
-	// CTFExchange NonceManager 使用精确匹配（nonces[maker] == order.nonce），
-	// 而不是传统的单调递增（>=）。用户初始 nonce 为 0，不能假设是 1。
+	// 关键：签名前先从链上读取当前 nonce.log。
+	// CTFExchange NonceManager 使用精确匹配（nonces[maker] == order.nonce.log），
+	// 而不是传统的单调递增（>=）。用户初始 nonce.log 为 0，不能假设是 1。
 	var u1Nonce, u2Nonce []interface{}
 	CallView(exchangeContract, "nonces", &u1Nonce, user1Addr)
 	CallView(exchangeContract, "nonces", &u2Nonce, user2Addr)

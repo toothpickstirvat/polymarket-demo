@@ -1,0 +1,83 @@
+✓ 配置已加载（OOv3 模式）: config.json
+✓ 已连接: https://bnb-testnet.g.alchemy.com/v2/lJ58uH7eYml95RsxmVGLL  Chain ID: 97
+  Deployer/DVM:  0x068a1f590819A507e5051edFAba0e6B00846ac97
+  User1 (买YES): 0xEf77f95c7D643fDD0D00f0EF58A2A4F248DF7d3B
+  User2 (买NO):  0xD5e2f45A6bf3F0a58BD51Bd4f11c6cA667e7D141
+  Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
+
+────────────────────────────────────────────────────────────
+  步骤 1: 部署 MockOOv3 / UmaCtfAdapterV3（OOv3 版本）
+────────────────────────────────────────────────────────────
+✓ MockOOv3:          0x3822ac14303D9bb76fCcBB43E773F8Ca9e426D60
+✓ UmaCtfAdapterV3:   0x82E93Ab01029b58Baaf68aa7652118F52D9A2F13
+✓ operator 权限已存在
+
+────────────────────────────────────────────────────────────
+  步骤 2: 铸造测试 USDC（先清零存量，再 deposit 10000）
+────────────────────────────────────────────────────────────
+  User1 退回存量 9500.00 USDC → deployer
+✓ User1 USDC 余额: 10000.00
+  User2 退回存量 8500.00 USDC → deployer
+✓ User2 USDC 余额: 10000.00
+
+────────────────────────────────────────────────────────────
+  步骤 3: 初始化市场（adapterV3.initialize，OOv3 版本）
+────────────────────────────────────────────────────────────
+  问题原文:     q: Will BNB price exceed $1000 by 2025-12-31? res_data: p1: 0, p2: 1, p3: 0.5
+  proposalBond: 100.00 USDC
+  liveness:     120 秒
+✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
+✓ conditionId: 0x6341aefd99f3a4573dea8e6443340ad167976383d6e99d44d1a39da3f221a24e
+✓ YES tokenId: 72752046614000511156506737123072491956381233927034722429437388604651125813973
+✓ NO  tokenId: 25379985015423917275421897506380231363192471385472250968427648191088361901720
+✓ registerToken 完成
+
+────────────────────────────────────────────────────────────
+  步骤 4: 拆分 USDC → YES/NO 代币（CTF.splitPosition）
+────────────────────────────────────────────────────────────
+✓ User1: YES=1000000000  NO=1000000000
+✓ User2: YES=1000000000  NO=1000000000
+
+────────────────────────────────────────────────────────────
+  步骤 5: 订单撮合（CTFExchange.matchOrders）
+────────────────────────────────────────────────────────────
+  User1 SELL 1000 NO @ 0.5 USDC，User2 BUY 1000 NO @ 0.5 USDC
+✓ matchOrders 成功
+  User1: YES=1000000000  NO=0  USDC=9500.00
+  User2: YES=1000000000  NO=2000000000  USDC=8500.00
+
+────────────────────────────────────────────────────────────
+  步骤 6: 提案市场结果（adapterV3.proposeResolution → YES 赢）
+────────────────────────────────────────────────────────────
+✓ 已提案 YES（result=true），liveness=120 秒
+  proposalBond: 100.00 USDC（由 adapter 锁入 OOv3）
+
+────────────────────────────────────────────────────────────
+  步骤 7: 等待 liveness 结束
+────────────────────────────────────────────────────────────
+→ 等待 120 秒... 15s 30s 45s 60s 75s 90s 105s 120s ✓
+
+────────────────────────────────────────────────────────────
+  步骤 8: 结算（adapter.settle → OO.settleAssertion → assertionResolvedCallback → YES 赢）
+────────────────────────────────────────────────────────────
+✓ adapter.settle 完成
+  → OO.settleAssertion 触发 assertionResolvedCallback(assertedTruthfully=true)
+  → assertionResolvedCallback: finalResult=true → reportPayouts([1e18, 0]) → YES 赢！
+  → bond 已退还给 proposer（deployer）: 100.00 USDC
+
+────────────────────────────────────────────────────────────
+  步骤 9: 赎回（CTF.redeemPositions）
+────────────────────────────────────────────────────────────
+✓ User1 赎回 YES: 9500.00 → 10500.00 USDC（+1000.00）
+✓ User2 赎回 NO:  8500.00 → 8500.00 USDC（YES 赢，NO 归零）
+
+────────────────────────────────────────────────────────────
+  OOv3 正常结算流程演示完成！
+────────────────────────────────────────────────────────────
+
+部署的合约：
+  MockOOv3:          0x3822ac14303D9bb76fCcBB43E773F8Ca9e426D60
+  UmaCtfAdapterV3:   0x82E93Ab01029b58Baaf68aa7652118F52D9A2F13
+
+
+  

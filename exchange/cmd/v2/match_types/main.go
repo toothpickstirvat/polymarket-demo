@@ -151,8 +151,8 @@ func main() {
 		Signer:        ctx.User1Addr,
 		Taker:         common.Address{},
 		TokenId:       ctx.YesTokenId,
-		MakerAmount:   compUsdc,    // USDC 支付
-		TakerAmount:   compTokens,  // YES 期望收到
+		MakerAmount:   compUsdc,   // USDC 支付
+		TakerAmount:   compTokens, // YES 期望收到
 		Expiration:    big.NewInt(time.Now().Unix() + 3600),
 		Nonce:         readNonce(ctx, ctx.User1Addr),
 		FeeRateBps:    big.NewInt(0),
@@ -173,8 +173,8 @@ func main() {
 		Signer:        ctx.User2Addr,
 		Taker:         common.Address{},
 		TokenId:       ctx.YesTokenId,
-		MakerAmount:   compTokens,  // YES token 卖出
-		TakerAmount:   compUsdc,    // USDC 期望收到
+		MakerAmount:   compTokens, // YES token 卖出
+		TakerAmount:   compUsdc,   // USDC 期望收到
 		Expiration:    big.NewInt(time.Now().Unix() + 3600),
 		Nonce:         readNonce(ctx, ctx.User2Addr),
 		FeeRateBps:    big.NewInt(0),
@@ -221,8 +221,8 @@ func main() {
 		Signer:        ctx.User2Addr,
 		Taker:         common.Address{},
 		TokenId:       ctx.YesTokenId,
-		MakerAmount:   compUsdc,    // USDC 支付
-		TakerAmount:   compTokens,  // YES 期望收到
+		MakerAmount:   compUsdc,   // USDC 支付
+		TakerAmount:   compTokens, // YES 期望收到
 		Expiration:    big.NewInt(time.Now().Unix() + 3600),
 		Nonce:         readNonce(ctx, ctx.User2Addr),
 		FeeRateBps:    big.NewInt(0),
@@ -240,8 +240,8 @@ func main() {
 		Signer:        ctx.User1Addr,
 		Taker:         common.Address{},
 		TokenId:       ctx.YesTokenId,
-		MakerAmount:   compTokens,  // YES token 卖出
-		TakerAmount:   compUsdc,    // USDC 期望收到
+		MakerAmount:   compTokens, // YES token 卖出
+		TakerAmount:   compUsdc,   // USDC 期望收到
 		Expiration:    big.NewInt(time.Now().Unix() + 3600),
 		Nonce:         readNonce(ctx, ctx.User1Addr),
 		FeeRateBps:    big.NewInt(0),
@@ -351,7 +351,7 @@ func main() {
 	fmt.Println("  ✓ MERGE       — 双边 SELL，销毁代币对换回抵押品（步骤 C）")
 }
 
-// readNonce 每次用新的空 slice 读取链上 nonce，避免 go-ethereum v1.13 复用
+// readNonce 每次用新的空 slice 读取链上 nonce.log，避免 go-ethereum v1.13 复用
 // 非空 result slice 时写入旧类型（如 bool）导致的 "cannot unmarshal" 错误。
 func readNonce(ctx *ex.MarketContext, addr common.Address) *big.Int {
 	var result []interface{}

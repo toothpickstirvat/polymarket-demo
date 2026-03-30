@@ -1,8 +1,8 @@
 // nonce_test 验证 CTFExchange NonceManager 的行为：
 //
-//   - 同一 nonce 下可以挂多个订单（A、B、C 都用 nonce=N）
-//   - nonce 不匹配的订单无效（D 用 nonce=N+1，在 N 阶段应 revert）
-//   - 调用 incrementNonce() 后，旧 nonce 订单全部失效，新 nonce 订单生效
+//   - 同一 nonce.log 下可以挂多个订单（A、B、C 都用 nonce.log=N）
+//   - nonce.log 不匹配的订单无效（D 用 nonce.log=N+1，在 N 阶段应 revert）
+//   - 调用 incrementNonce() 后，旧 nonce.log 订单全部失效，新 nonce.log 订单生效
 //
 // 运行（从 exchange/ 目录）：
 //
@@ -22,7 +22,7 @@ import (
 	ex "polymarket-exchange"
 )
 
-// buildOrder 构造一个 SELL YES 订单并签名，nonce 由调用方指定。
+// buildOrder 构造一个 SELL YES 订单并签名，nonce.log 由调用方指定。
 // 步骤 5 后 User1 有 1000 YES、0 NO，所以用 YES 代币避免余额不足。
 func buildOrder(ctx *ex.MarketContext, nonce *big.Int) *ex.CTFOrder {
 	order := &ex.CTFOrder{
@@ -94,46 +94,46 @@ func main() {
 	flag.Parse()
 
 	// 执行公共步骤 1-5（部署合约、铸造 USDC、初始化市场、拆分头寸、撮合初始订单）
-	// 注意：步骤 5 已经撮合了一次（User1 SELL 1000 NO），会消耗 nonce=0 的一个名额，
-	// 但 nonce 不会变，仍为 0。
+	// 注意：步骤 5 已经撮合了一次（User1 SELL 1000 NO），会消耗 nonce.log=0 的一个名额，
+	// 但 nonce.log 不会变，仍为 0。
 	ctx := ex.RunCommonSetup(*configPath)
 
-	// ── 读取初始 nonce ────────────────────────────────────────────────────────
+	// ── 读取初始 nonce.log ────────────────────────────────────────────────────────
 	n1 := readNonce(ctx, ctx.User1Addr)
 	n2 := readNonce(ctx, ctx.User2Addr)
-	ex.Div(fmt.Sprintf("初始状态：User1 nonce=%s，User2 nonce=%s", n1, n2))
+	ex.Div(fmt.Sprintf("初始状态：User1 nonce.log=%s，User2 nonce.log=%s", n1, n2))
 
-	currentNonce := new(big.Int).Set(n1) // User1 当前 nonce
+	currentNonce := new(big.Int).Set(n1) // User1 当前 nonce.log
 	nextNonce := new(big.Int).Add(currentNonce, big.NewInt(1))
 
-	// ── 场景一：A/B/C（nonce=N）有效，D（nonce=N+1）无效 ─────────────────────
-	ex.Div(fmt.Sprintf("场景一：构造 orderA/B/C（nonce=%s）和 orderD（nonce=%s）", currentNonce, nextNonce))
+	// ── 场景一：A/B/C（nonce.log=N）有效，D（nonce.log=N+1）无效 ─────────────────────
+	ex.Div(fmt.Sprintf("场景一：构造 orderA/B/C（nonce.log=%s）和 orderD（nonce.log=%s）", currentNonce, nextNonce))
 
 	orderA := buildOrder(ctx, new(big.Int).Set(currentNonce))
 	orderB := buildOrder(ctx, new(big.Int).Set(currentNonce))
 	orderC := buildOrder(ctx, new(big.Int).Set(currentNonce))
 	orderD := buildOrder(ctx, new(big.Int).Set(nextNonce))
 
-	fmt.Printf("  orderA nonce=%s，orderB nonce=%s，orderC nonce=%s，orderD nonce=%s\n",
+	fmt.Printf("  orderA nonce.log=%s，orderB nonce.log=%s，orderC nonce.log=%s，orderD nonce.log=%s\n",
 		orderA.Nonce, orderB.Nonce, orderC.Nonce, orderD.Nonce)
 
-	// 验证 orderA（nonce=N）有效
+	// 验证 orderA（nonce.log=N）有效
 	takerA := buildBuyOrder(ctx, new(big.Int).Set(currentNonce))
 	if tryMatch(ctx, orderA, takerA) {
-		fmt.Printf("✓ orderA（nonce=%s）撮合成功 → 符合预期（nonce 匹配）\n", orderA.Nonce)
+		fmt.Printf("✓ orderA（nonce.log=%s）撮合成功 → 符合预期（nonce.log 匹配）\n", orderA.Nonce)
 	} else {
-		fmt.Printf("✗ orderA（nonce=%s）撮合失败 → 不符合预期\n", orderA.Nonce)
+		fmt.Printf("✗ orderA（nonce.log=%s）撮合失败 → 不符合预期\n", orderA.Nonce)
 	}
 
-	// 验证 orderD（nonce=N+1）无效（链上 nonce 仍为 N）
+	// 验证 orderD（nonce.log=N+1）无效（链上 nonce.log 仍为 N）
 	takerD := buildBuyOrder(ctx, new(big.Int).Set(nextNonce))
 	if tryMatch(ctx, orderD, takerD) {
-		fmt.Printf("✗ orderD（nonce=%s）撮合成功 → 不符合预期（应该失败）\n", orderD.Nonce)
+		fmt.Printf("✗ orderD（nonce.log=%s）撮合成功 → 不符合预期（应该失败）\n", orderD.Nonce)
 	} else {
-		fmt.Printf("✓ orderD（nonce=%s）撮合失败 → 符合预期（nonce 不匹配，revert InvalidNonce）\n", orderD.Nonce)
+		fmt.Printf("✓ orderD（nonce.log=%s）撮合失败 → 符合预期（nonce.log 不匹配，revert InvalidNonce）\n", orderD.Nonce)
 	}
 
-	fmt.Printf("  此时 orderB/C（nonce=%s）仍然有效（同 nonce 下多订单互不影响）\n", currentNonce)
+	fmt.Printf("  此时 orderB/C（nonce.log=%s）仍然有效（同 nonce.log 下多订单互不影响）\n", currentNonce)
 
 	// ── 场景二：incrementNonce() 后，B/C 失效，D 生效 ────────────────────────
 	ex.Div("场景二：User1 调用 incrementNonce()")
@@ -142,39 +142,39 @@ func main() {
 	ex.Send(ctx.Client, user1Auth, ctx.ExchangeContract, "incrementNonce")
 
 	n1After := readNonce(ctx, ctx.User1Addr)
-	fmt.Printf("✓ incrementNonce() 完成，User1 nonce: %s → %s\n", currentNonce, n1After)
+	fmt.Printf("✓ incrementNonce() 完成，User1 nonce.log: %s → %s\n", currentNonce, n1After)
 
-	// 验证 orderB（nonce=N）现在无效
+	// 验证 orderB（nonce.log=N）现在无效
 	user2Auth := ex.NewAuth(ctx.Client, ctx.User2Key)
 	ex.Send(ctx.Client, user2Auth, ctx.USDCContract, "approve", ctx.ExchangeAddr, ex.ToUsdc(50))
 	takerB := buildBuyOrder(ctx, new(big.Int).Set(currentNonce))
 	if tryMatch(ctx, orderB, takerB) {
-		fmt.Printf("✗ orderB（nonce=%s）撮合成功 → 不符合预期（应已失效）\n", orderB.Nonce)
+		fmt.Printf("✗ orderB（nonce.log=%s）撮合成功 → 不符合预期（应已失效）\n", orderB.Nonce)
 	} else {
-		fmt.Printf("✓ orderB（nonce=%s）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）\n", orderB.Nonce)
+		fmt.Printf("✓ orderB（nonce.log=%s）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）\n", orderB.Nonce)
 	}
 
-	// 验证 orderD（nonce=N+1）现在有效
-	// 注意：User2 的 nonce 也需要是 N+1
+	// 验证 orderD（nonce.log=N+1）现在有效
+	// 注意：User2 的 nonce.log 也需要是 N+1
 	n2After := readNonce(ctx, ctx.User2Addr)
-	fmt.Printf("  User2 当前 nonce=%s，需要也 incrementNonce 才能让 takerD 有效\n", n2After)
+	fmt.Printf("  User2 当前 nonce.log=%s，需要也 incrementNonce 才能让 takerD 有效\n", n2After)
 	if n2After.Cmp(nextNonce) != 0 {
 		ex.Send(ctx.Client, user2Auth, ctx.ExchangeContract, "incrementNonce")
-		fmt.Printf("✓ User2 incrementNonce() 完成，nonce=%s\n", nextNonce)
+		fmt.Printf("✓ User2 incrementNonce() 完成，nonce.log=%s\n", nextNonce)
 	}
 
 	ex.Send(ctx.Client, user2Auth, ctx.USDCContract, "approve", ctx.ExchangeAddr, ex.ToUsdc(50))
 	takerD2 := buildBuyOrder(ctx, new(big.Int).Set(nextNonce))
 	if tryMatch(ctx, orderD, takerD2) {
-		fmt.Printf("✓ orderD（nonce=%s）撮合成功 → 符合预期（incrementNonce 后新 nonce 订单有效）\n", orderD.Nonce)
+		fmt.Printf("✓ orderD（nonce.log=%s）撮合成功 → 符合预期（incrementNonce 后新 nonce.log 订单有效）\n", orderD.Nonce)
 	} else {
-		fmt.Printf("✗ orderD（nonce=%s）撮合失败 → 不符合预期\n", orderD.Nonce)
+		fmt.Printf("✗ orderD（nonce.log=%s）撮合失败 → 不符合预期\n", orderD.Nonce)
 	}
 
 	ex.Div("Nonce 验证完成")
 	fmt.Println("\n【结论】")
-	fmt.Println("  1. 同一 nonce 下可同时存在多个有效订单（A/B/C）")
-	fmt.Println("  2. nonce 不匹配的订单无效（D 在 nonce=N 时 revert）")
-	fmt.Println("  3. incrementNonce() 使旧 nonce 的所有订单失效（B/C 作废）")
-	fmt.Println("  4. incrementNonce() 后新 nonce 订单生效（D 可成交）")
+	fmt.Println("  1. 同一 nonce.log 下可同时存在多个有效订单（A/B/C）")
+	fmt.Println("  2. nonce.log 不匹配的订单无效（D 在 nonce.log=N 时 revert）")
+	fmt.Println("  3. incrementNonce() 使旧 nonce.log 的所有订单失效（B/C 作废）")
+	fmt.Println("  4. incrementNonce() 后新 nonce.log 订单生效（D 可成交）")
 }

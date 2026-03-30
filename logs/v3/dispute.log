@@ -1,0 +1,96 @@
+✓ 配置已加载（OOv3 模式）: config.json
+✓ 已连接: https://bnb-testnet.g.alchemy.com/v2/lJ58uH7eYml95RsxmVGLL  Chain ID: 97
+  Deployer/DVM:  0x068a1f590819A507e5051edFAba0e6B00846ac97
+  User1 (买YES): 0xEf77f95c7D643fDD0D00f0EF58A2A4F248DF7d3B
+  User2 (买NO):  0xD5e2f45A6bf3F0a58BD51Bd4f11c6cA667e7D141
+  Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
+
+────────────────────────────────────────────────────────────
+  步骤 1: 部署 MockOOv3 / UmaCtfAdapterV3（OOv3 版本）
+────────────────────────────────────────────────────────────
+✓ MockOOv3:          0x06a26b95c7C258b347F0Ee18f2de2239308685cB
+✓ UmaCtfAdapterV3:   0x05F65cA98E24D7A7b82B8E83F90CD7d6f49AfFf3
+✓ operator 权限已存在
+
+────────────────────────────────────────────────────────────
+  步骤 2: 铸造测试 USDC（先清零存量，再 deposit 10000）
+────────────────────────────────────────────────────────────
+  User1 退回存量 10500.00 USDC → deployer
+✓ User1 USDC 余额: 10000.00
+  User2 退回存量 8500.00 USDC → deployer
+✓ User2 USDC 余额: 10000.00
+
+────────────────────────────────────────────────────────────
+  步骤 3: 初始化市场（adapterV3.initialize，OOv3 版本）
+────────────────────────────────────────────────────────────
+  问题原文:     q: Will BNB price exceed $1000 by 2025-12-31? res_data: p1: 0, p2: 1, p3: 0.5
+  proposalBond: 100.00 USDC
+  liveness:     120 秒
+✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
+✓ conditionId: 0xef88bacc48b507be67ebf66b762baf41302539104d9f398b3670135ecfbc0c17
+✓ YES tokenId: 71153784316682441781968104741536148786395820462389428006040052566125563800340
+✓ NO  tokenId: 70096820475716905342662622118954947823094431263920034159238098909989890413690
+✓ registerToken 完成
+
+────────────────────────────────────────────────────────────
+  步骤 4: 拆分 USDC → YES/NO 代币（CTF.splitPosition）
+────────────────────────────────────────────────────────────
+✓ User1: YES=1000000000  NO=1000000000
+✓ User2: YES=1000000000  NO=1000000000
+
+────────────────────────────────────────────────────────────
+  步骤 5: 订单撮合（CTFExchange.matchOrders）
+────────────────────────────────────────────────────────────
+  User1 SELL 1000 NO @ 0.5 USDC，User2 BUY 1000 NO @ 0.5 USDC
+✓ matchOrders 成功
+  User1: YES=1000000000  NO=0  USDC=9500.00
+  User2: YES=1000000000  NO=2000000000  USDC=8500.00
+
+────────────────────────────────────────────────────────────
+  步骤 6: 提案错误结果（adapterV3.proposeResolution → YES，但这是错的）
+────────────────────────────────────────────────────────────
+✓ Proposer（deployer）提案 YES（result=true）
+  → bond 100.00 USDC 已由 adapter 锁入 OOv3
+✓ assertionId: 0x19a2c898f8192d7b1adbe478b70b4bf2429c27084a8ad2c374340fd2d82987d8
+
+────────────────────────────────────────────────────────────
+  步骤 7: User2 质疑提案（OO.disputeAssertion）
+────────────────────────────────────────────────────────────
+  User2 持有 NO tokens，认为提案 YES 是错误的，发起质疑
+✓ User2 质疑成功，质押 bond: 100.00 USDC → OOv3
+  → OOv3 调用 adapter.assertionDisputedCallback()（事件记录）
+  → OOv3 内部：断言状态 = Disputed，等待 DVM 裁定
+  ★ 注意：OOv3 无需重置 requestTime，也无需二次提案（与 OOv2 最大的流程差异）
+
+────────────────────────────────────────────────────────────
+  步骤 8: DVM 裁定（OO.mockDvmResolve, resolution=false → NO 赢）
+────────────────────────────────────────────────────────────
+  DVM 确认：原提案 YES 是错误的，质疑者（User2）胜
+✓ mockDvmResolve(resolution=false) 完成
+  → OO 向 disputer（User2）发送 2x bond
+  → OO 调用 assertionResolvedCallback(assertedTruthfully=false)
+  → assertionResolvedCallback: finalResult = !true = false → NO 赢！
+  → CTF.reportPayouts([0, 1e18]) 已调用，市场解析完成
+  User2 DVM 奖励收益: +100.00 USDC（2x bond）
+
+────────────────────────────────────────────────────────────
+  步骤 9: 赎回（CTF.redeemPositions）
+────────────────────────────────────────────────────────────
+✓ User1 赎回 YES: 9500.00 → 9500.00 USDC（NO 赢，YES 归零）
+✓ User2 赎回 NO:  8600.00 → 10600.00 USDC（NO 赢，+2000.00）
+
+────────────────────────────────────────────────────────────
+  OOv3 争议处理流程演示完成！
+────────────────────────────────────────────────────────────
+
+【OOv3 与 OOv2 争议流程对比】
+  OOv2 需要 7 步：错误提案 → 质疑 → DVM 裁定 → 重新提案 → 等待 liveness → settle → resolve
+  OOv3 只需 4 步：错误提案 → 质疑 → DVM 裁定（直接触发回调结算）→ 赎回
+
+【资金流向总结】
+  Proposer（deployer）：错误提案，损失 bond 100.00 USDC
+  User2（质疑者）    ：DVM bond 奖励 +100.00 USDC + NO 赎回 2000.00 USDC
+
+部署的合约：
+  MockOOv3:          0x06a26b95c7C258b347F0Ee18f2de2239308685cB
+  UmaCtfAdapterV3:   0x05F65cA98E24D7A7b82B8E83F90CD7d6f49AfFf3

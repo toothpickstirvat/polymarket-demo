@@ -66,13 +66,13 @@ function isValidNonce(address maker, uint256 nonce) external view returns (bool)
 ### 解决方法
 
 ```go
-// 签名前先从链上读取当前 nonce
+// 签名前先从链上读取当前 nonce.log
 var u1Nonce, u2Nonce []interface{}
 CallView(exchangeContract, "nonces", &u1Nonce, user1Addr)
 CallView(exchangeContract, "nonces", &u2Nonce, user2Addr)
 
 makerOrder := CTFOrder{
-Nonce: u1Nonce[0].(*big.Int), // 使用链上实际 nonce
+Nonce: u1Nonce[0].(*big.Int), // 使用链上实际 nonce.log
 // ...
 }
 ```
