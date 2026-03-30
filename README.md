@@ -1,7 +1,19 @@
 # Polymarket Demo
 
-在BSC测试网（Chapel，Chain ID: 97）上复现Polymarket预测市场完整流程，覆盖正常结算、争议处理、Nonce验证、三种撮合类型，并分别提供UMA
-OOv2和OOv3两个版本。
+一次性端到端的链上交互演示脚本，用来验证整个Polymarket协议栈能跑通。把整个市场从创建到用户赎回的全部十几个步骤用一个Go脚本跑一遍，包括用户交易行为。
+在BSC测试网（Chapel，Chain ID: 97）上复现Polymarket预测市场完整流程，覆盖正常结算、争议处理、Nonce验证、三种撮合类型，并分别提供UMA OOv2和OOv3两个版本。
+
+## 主要功能
+
+- 部署合约（OO、Adapter）
+- 铸造USDC
+- 创建市场（initialize）
+- 拆分仓位（splitPosition）
+- 撮合用户订单（matchOrders）
+- 提案价格（proposePrice）
+- 等待liveness
+- 结算（settle + resolve）
+- 用户赎回（redeemPositions）
 
 ## Dependencies
 
