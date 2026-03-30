@@ -6,10 +6,14 @@
   Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
 
 ────────────────────────────────────────────────────────────
-  步骤 1: 部署 MockOOv3 / UmaCtfAdapterV3（OOv3 版本）
+  步骤 1: 部署 MockOOv3 / MockFinder / UmaCtfAdapterV3（OOv3 版本）
 ────────────────────────────────────────────────────────────
-✓ MockOOv3:          0xe4554350a8D4b7Df90dB9A04d36C72B0bDCA4eAC
-✓ UmaCtfAdapterV3:   0xBea61e1Ae406a6CD3fb5ab7207fC30334bd169d6
+✓ MockOOv3:          0x874b56398C21F230ABd0a93702943feDfe801927
+✓ MockFinder:        0x3E8EdbAB20C7C02dfaa8ea1e276a6c6AC4b6FC1D
+✓ Finder 已注册: "OptimisticOracleV3" → 0x874b56398C21F230ABd0a93702943feDfe801927
+✓ Finder 查询验证: getImplementationAddress("OptimisticOracleV3") = 0x874b56398C21F230ABd0a93702943feDfe801927
+✓ UmaCtfAdapterV3:   0x5305E10eD2c45BFE125ef706830F348bAEA632c1
+✓ adapter.getOOAddress() = 0x874b56398C21F230ABd0a93702943feDfe801927（与 MockOOv3 地址一致）
 ✓ operator 权限已存在
 
 ────────────────────────────────────────────────────────────
@@ -27,9 +31,9 @@
   proposalBond: 100.00 USDC
   liveness:     120 秒
 ✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
-✓ conditionId: 0xaf18885b905d322f762a009cfeaf202f1e3ebb0262b4cd0b7d05100825a28651
-✓ YES tokenId: 24297993557926379111900535236418996218337280523282710670082910537170721008305
-✓ NO  tokenId: 71900608311768250270780638720370858949409481585503813715419477622828558842879
+✓ conditionId: 0xcaa20b4e48cd1d13a2e1e6cd07efdf6826ba39612db537e26696537c280b3f63
+✓ YES tokenId: 68416412912791070695103293395047440813193172573613646997063849772869309252006
+✓ NO  tokenId: 39195121131868920203237778864904451343792786670781247268048961665321737877044
 ✓ registerToken 完成
 
 ────────────────────────────────────────────────────────────
@@ -47,34 +51,39 @@
   User2: YES=1000000000  NO=2000000000  USDC=8500.00
 
 ────────────────────────────────────────────────────────────
-  初始状态：User1 nonce=2，User2 nonce=2
+  初始状态：User1 nonce.log=3，User2 nonce.log=3
 ────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────
-  场景一：构造 orderA/B/C（nonce=2）和 orderD（nonce=3）
+  场景一：构造 orderA/B/C（nonce.log=3）和 orderD（nonce.log=4）
 ────────────────────────────────────────────────────────────
-  orderA nonce=2，orderB nonce=2，orderC nonce=2，orderD nonce=3
-✓ orderA（nonce=2）撮合成功 → 符合预期（nonce 匹配）
-✓ orderD（nonce=3）撮合失败 → 符合预期（nonce 不匹配，revert InvalidNonce）
-  此时 orderB/C（nonce=2）仍然有效（同 nonce 下多订单互不影响）
+  orderA nonce.log=3，orderB nonce.log=3，orderC nonce.log=3，orderD nonce.log=4
+✓ orderA（nonce.log=3）撮合成功 → 符合预期（nonce.log 匹配）
+✓ orderD（nonce.log=4）撮合失败 → 符合预期（nonce.log 不匹配，revert InvalidNonce）
+  此时 orderB/C（nonce.log=3）仍然有效（同 nonce.log 下多订单互不影响）
 
 ────────────────────────────────────────────────────────────
   场景二：User1 调用 incrementNonce()
 ────────────────────────────────────────────────────────────
-✓ incrementNonce() 完成，User1 nonce: 2 → 3
-✓ orderB（nonce=2）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）
-  User2 当前 nonce=2，需要也 incrementNonce 才能让 takerD 有效
-✓ User2 incrementNonce() 完成，nonce=3
-✓ orderD（nonce=3）撮合成功 → 符合预期（incrementNonce 后新 nonce 订单有效）
+✓ incrementNonce() 完成，User1 nonce.log: 3 → 4
+✓ orderB（nonce.log=3）撮合失败 → 符合预期（incrementNonce 后旧订单全部失效）
+  User2 当前 nonce.log=3，需要也 incrementNonce 才能让 takerD 有效
+✓ User2 incrementNonce() 完成，nonce.log=4
+✓ orderD（nonce.log=4）撮合成功 → 符合预期（incrementNonce 后新 nonce.log 订单有效）
 
 ────────────────────────────────────────────────────────────
   Nonce 验证完成
 ────────────────────────────────────────────────────────────
 
 【结论】
-  1. 同一 nonce 下可同时存在多个有效订单（A/B/C）
-  2. nonce 不匹配的订单无效（D 在 nonce=N 时 revert）
-  3. incrementNonce() 使旧 nonce 的所有订单失效（B/C 作废）
-  4. incrementNonce() 后新 nonce 订单生效（D 可成交）
+  1. 同一 nonce.log 下可同时存在多个有效订单（A/B/C）
+  2. nonce.log 不匹配的订单无效（D 在 nonce.log=N 时 revert）
+  3. incrementNonce() 使旧 nonce.log 的所有订单失效（B/C 作废）
+  4. incrementNonce() 后新 nonce.log 订单生效（D 可成交）
 
 
+
+
+
+
+  

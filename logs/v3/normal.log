@@ -6,10 +6,14 @@
   Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
 
 ────────────────────────────────────────────────────────────
-  步骤 1: 部署 MockOOv3 / UmaCtfAdapterV3（OOv3 版本）
+  步骤 1: 部署 MockOOv3 / MockFinder / UmaCtfAdapterV3（OOv3 版本）
 ────────────────────────────────────────────────────────────
-✓ MockOOv3:          0x3822ac14303D9bb76fCcBB43E773F8Ca9e426D60
-✓ UmaCtfAdapterV3:   0x82E93Ab01029b58Baaf68aa7652118F52D9A2F13
+✓ MockOOv3:          0x8244ecb8f76dC6C7F109EBE9eE5730B852cbAB14
+✓ MockFinder:        0x7276BD1bf9E110a190297CBAf81C0E80757107EF
+✓ Finder 已注册: "OptimisticOracleV3" → 0x8244ecb8f76dC6C7F109EBE9eE5730B852cbAB14
+✓ Finder 查询验证: getImplementationAddress("OptimisticOracleV3") = 0x8244ecb8f76dC6C7F109EBE9eE5730B852cbAB14
+✓ UmaCtfAdapterV3:   0xdd513df381907b3A9759Eb20a93A0E32c2496653
+✓ adapter.getOOAddress() = 0x8244ecb8f76dC6C7F109EBE9eE5730B852cbAB14（与 MockOOv3 地址一致）
 ✓ operator 权限已存在
 
 ────────────────────────────────────────────────────────────
@@ -27,9 +31,9 @@
   proposalBond: 100.00 USDC
   liveness:     120 秒
 ✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
-✓ conditionId: 0x6341aefd99f3a4573dea8e6443340ad167976383d6e99d44d1a39da3f221a24e
-✓ YES tokenId: 72752046614000511156506737123072491956381233927034722429437388604651125813973
-✓ NO  tokenId: 25379985015423917275421897506380231363192471385472250968427648191088361901720
+✓ conditionId: 0xd3c78d3d42b6d1709c0b49c8c85a6ae082d844fefa11317c096edc4ae9f8a338
+✓ YES tokenId: 45109756966740961244390808315898807075997386079150360938579049811468088836874
+✓ NO  tokenId: 47717597165210771708658333941268732346666893972112311654281443143203845996453
 ✓ registerToken 完成
 
 ────────────────────────────────────────────────────────────
@@ -76,8 +80,11 @@
 ────────────────────────────────────────────────────────────
 
 部署的合约：
-  MockOOv3:          0x3822ac14303D9bb76fCcBB43E773F8Ca9e426D60
-  UmaCtfAdapterV3:   0x82E93Ab01029b58Baaf68aa7652118F52D9A2F13
+  MockOOv3:          0x8244ecb8f76dC6C7F109EBE9eE5730B852cbAB14
+  MockFinder:        0x7276BD1bf9E110a190297CBAf81C0E80757107EF
+  UmaCtfAdapterV3:   0xdd513df381907b3A9759Eb20a93A0E32c2496653
 
 
-  
+
+
+

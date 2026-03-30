@@ -6,10 +6,14 @@
   Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
 
 ────────────────────────────────────────────────────────────
-  步骤 1: 部署 MockOOv3 / UmaCtfAdapterV3（OOv3 版本）
+  步骤 1: 部署 MockOOv3 / MockFinder / UmaCtfAdapterV3（OOv3 版本）
 ────────────────────────────────────────────────────────────
-✓ MockOOv3:          0x1770f93060eC54f8Be092B7866A64795ffa951B7
-✓ UmaCtfAdapterV3:   0xEb0AefabBaB30feDd0C70A28eCd99f1f755d742d
+✓ MockOOv3:          0x5b950B57f792a4DD5D12b6c282331cF0eE7e142d
+✓ MockFinder:        0x551a7A087EEF860be272398c54f5A5AcE550FB96
+✓ Finder 已注册: "OptimisticOracleV3" → 0x5b950B57f792a4DD5D12b6c282331cF0eE7e142d
+✓ Finder 查询验证: getImplementationAddress("OptimisticOracleV3") = 0x0000000000000000000000000000000000000000
+✓ UmaCtfAdapterV3:   0xa8Cac35F63c510089F1E313391086C0809C485F5
+✓ adapter.getOOAddress() = 0x5b950B57f792a4DD5D12b6c282331cF0eE7e142d（与 MockOOv3 地址一致）
 ✓ operator 权限已存在
 
 ────────────────────────────────────────────────────────────
@@ -27,9 +31,9 @@
   proposalBond: 100.00 USDC
   liveness:     120 秒
 ✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
-✓ conditionId: 0x1afb31a94edee148dbb30d47d8b6ec8a47876ee9fab0c7851f03acad4daea27d
-✓ YES tokenId: 68923732267264228388823170459470513514810129747094007629917543359218020883886
-✓ NO  tokenId: 41921287463549951846881772929094136706129907431463427952025704416164154453561
+✓ conditionId: 0xa3a5deedc0d2f9fca5b081eae26b5f3483db66505666b0c6301046fc462f6116
+✓ YES tokenId: 35708014623082403642139584474666464218948225398274354080870800158187781375502
+✓ NO  tokenId: 99706207024179482164294521618259948209750886264135880249066285196352011661527
 ✓ registerToken 完成
 
 ────────────────────────────────────────────────────────────
@@ -90,6 +94,4 @@
   ✓ COMPLEMENTARY — BUY vs SELL，代币换手（步骤 B1 正向）
   ✓ COMPLEMENTARY — SELL vs BUY，反向换手（步骤 B2 逆向）
   ✓ MERGE       — 双边 SELL，销毁代币对换回抵押品（步骤 C）
-
-
 

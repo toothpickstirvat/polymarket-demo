@@ -11,7 +11,8 @@
 - UMA有自己的治理代币（$UMA）、DVM（数据验证机制）和代币持有者投票社区。任何协议都可以接入UMA进行争议仲裁。
 - Polymarket是预测市场平台，选择UMA作为价格仲裁层，但自己维护CTFExchange和UmaCtfAdapter等合约。
 
-两者的关系类似**甲方与基础设施供应商**：Polymarket 用UMA的OOv2解决"谁提案、谁质疑、最终谁说了算"的问题，但DVM投票由UMA代币持有者完成，Polymarket无法干预仲裁结果。
+两者的关系类似**甲方与基础设施供应商**：Polymarket 用UMA的OOv2解决"谁提案、谁质疑、最终谁说了算"
+的问题，但DVM投票由UMA代币持有者完成，Polymarket无法干预仲裁结果。
 
 这也是本项目用`MockOOv2` + `mockDvmSettle()`的原因——在测试环境中模拟这个本来由UMA社区治理的仲裁过程。
 
@@ -311,12 +312,13 @@ UMA 官方支持的网络：
 
 ### 6.2 BSC 测试网方案
 
-**方案：自建 MockOptimisticOracleV2 + 复用已部署合约**
+**方案：自建 Mock 合约 + 复用已部署合约**
 
 由于 UMA 未在 BSC 部署，我们采用以下策略：
 
 - **复用**：BSC 测试网上已有 ConditionalTokens（Gnosis CTF）和 CTFExchange 的部署
-- **自部署**：MockOptimisticOracleV2 + MockAddressWhitelist + UmaCtfAdapter（指向 MockOOv2）
+- **OOv2 自部署**：MockOptimisticOracleV2 + MockAddressWhitelist + UmaCtfAdapter（直接传入 MockOOv2 地址）
+- **OOv3 自部署**：MockOptimisticOracleV3 + **MockFinder**（注册 OOv3 地址）+ UmaCtfAdapterV3（传入 MockFinder 地址）
 
 MockOOv2 实现与真实 OOv2 相同的接口：
 
@@ -333,6 +335,23 @@ MockOOv2 实现与真实 OOv2 相同的接口：
 
 1. 等 UMA 部署到 BSC（或选择 UMA 已支持的链）
 2. 替换 MockOOv2 地址为真实 OOv2 地址，UmaCtfAdapter 指向真实 OO
+
+### 6.3 MockFinder 与官方 Finder 的差异
+
+官方 UMA Finder（Polygon mainnet: `0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64`）是 UMA 合约体系的**核心升级机制**
+：UmaCtfAdapter 不直接持有 OO 地址，而是持有 Finder 地址，每次调用 OO 时先查询
+`finder.getImplementationAddress("OptimisticOracleV3")`。这样 UMA 升级 OO 版本时，只需在 Finder 中更新一条记录，所有依赖
+Finder 的适配合约立即生效，无需重新部署。
+
+本项目的 `MockFinder` 复现了这一机制，与官方 Finder 的接口完全相同，但有一处简化：
+
+| 函数                            | 官方 Finder              | MockFinder       |
+|-------------------------------|------------------------|------------------|
+| `changeImplementationAddress` | 只有 owner 才能调用（有治理权限控制） | 任何人都可以调用（省略治理逻辑） |
+| `getImplementationAddress`    | 完全相同                   | 完全相同             |
+
+官方版本的权限控制是生产环境的必要安全保障——防止攻击者替换 OO 地址。测试环境无此需求，因此 MockFinder 省去了 `Ownable`
+继承和权限检查。
 
 ---
 

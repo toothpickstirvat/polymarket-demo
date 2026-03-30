@@ -593,7 +593,8 @@ type MarketContext struct {
 	CTFAddr       common.Address // 固定，来自 config
 	ExchangeAddr  common.Address // 固定，来自 config
 	USDCAddr      common.Address // 固定，来自 config
-	WhitelistAddr common.Address // 每次部署
+	WhitelistAddr common.Address // 每次部署（OOv2）
+	FinderAddr    common.Address // 每次部署（OOv3）
 	OOAddr        common.Address // 每次部署
 	AdapterAddr   common.Address // 每次部署
 

@@ -58,7 +58,9 @@ go run ./cmd/v3/match_types
 | 项目       | OOv2 版本                  | OOv3 版本                  |
 |----------|--------------------------|--------------------------|
 | Oracle合约 | `MockOptimisticOracleV2` | `MockOptimisticOracleV3` |
+| 地址注册表    | 无                        | `MockFinder`（复现官方升级机制）   |
 | 适配合约     | `UmaCtfAdapter`          | `UmaCtfAdapterV3`        |
+| 适配合约构造函数 | `(_ctf, _oo, _usdc)`     | `(_ctf, _finder, _usdc)` |
 | 抵押品白名单   | 需要`MockAddressWhitelist` | 不需要（OOv3移除依赖）            |
 | Go初始化函数  | `RunCommonSetup()`       | `RunCommonSetupV3()`     |
 
@@ -75,7 +77,7 @@ go run ./cmd/v3/match_types
 | 项目   | OOv2                                                  | OOv3                                              |
 |------|-------------------------------------------------------|---------------------------------------------------|
 | 谁来调用 | 提案者直接调 `OO.proposePrice(...)`                         | 提案者调`adapter.proposeResolution(questionId, bool)` |
-| 内部机制 | OO存储int256价格（1e18=YES，0=NO）                           | adapter调`OO.assertTruth()`，OO返回`assertionId`      |
+| 内部机制 | OO存储int256价格（1e18=YES，0=NO）                           | adapter先查`Finder`获取OO地址，再调`OO.assertTruth()`，OO返回`assertionId` |
 | 请求定位 | (requester, identifier, timestamp, ancillaryData) 四元组 | `assertionId`（bytes32，更简洁）                        |
 
 ### 正常结算（无争议）

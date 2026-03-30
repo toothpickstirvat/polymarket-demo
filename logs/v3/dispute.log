@@ -6,10 +6,14 @@
   Operator:      0x393AE179dD5F2F49403893A97cE1201B9F6CB641
 
 ────────────────────────────────────────────────────────────
-  步骤 1: 部署 MockOOv3 / UmaCtfAdapterV3（OOv3 版本）
+  步骤 1: 部署 MockOOv3 / MockFinder / UmaCtfAdapterV3（OOv3 版本）
 ────────────────────────────────────────────────────────────
-✓ MockOOv3:          0x06a26b95c7C258b347F0Ee18f2de2239308685cB
-✓ UmaCtfAdapterV3:   0x05F65cA98E24D7A7b82B8E83F90CD7d6f49AfFf3
+✓ MockOOv3:          0x14C0D48cE2fA5acBb7bfa7d2903B1D993bFCfF73
+✓ MockFinder:        0xAFf1D2D7844F8640FF6A48C06FF5B81149A4188E
+✓ Finder 已注册: "OptimisticOracleV3" → 0x14C0D48cE2fA5acBb7bfa7d2903B1D993bFCfF73
+✓ Finder 查询验证: getImplementationAddress("OptimisticOracleV3") = 0x14C0D48cE2fA5acBb7bfa7d2903B1D993bFCfF73
+✓ UmaCtfAdapterV3:   0x048BFeDc6C88582D5602DA97f8b3D31327a60B02
+✓ adapter.getOOAddress() = 0x14C0D48cE2fA5acBb7bfa7d2903B1D993bFCfF73（与 MockOOv3 地址一致）
 ✓ operator 权限已存在
 
 ────────────────────────────────────────────────────────────
@@ -27,9 +31,9 @@
   proposalBond: 100.00 USDC
   liveness:     120 秒
 ✓ questionId:  0x5b8264e48f32ebc34050b28363dcda0c9282976bfb96249735c52f709a0f6299
-✓ conditionId: 0xef88bacc48b507be67ebf66b762baf41302539104d9f398b3670135ecfbc0c17
-✓ YES tokenId: 71153784316682441781968104741536148786395820462389428006040052566125563800340
-✓ NO  tokenId: 70096820475716905342662622118954947823094431263920034159238098909989890413690
+✓ conditionId: 0x146d6cbbd3d328c38c9ef5140d80a03b7399b543979797118342fae784fe9366
+✓ YES tokenId: 85206749251980994995879331463594128298684423917435922556689216596496872900761
+✓ NO  tokenId: 69987388363586165682243153249321525587444060449920426403069623414202535928997
 ✓ registerToken 完成
 
 ────────────────────────────────────────────────────────────
@@ -51,7 +55,7 @@
 ────────────────────────────────────────────────────────────
 ✓ Proposer（deployer）提案 YES（result=true）
   → bond 100.00 USDC 已由 adapter 锁入 OOv3
-✓ assertionId: 0x19a2c898f8192d7b1adbe478b70b4bf2429c27084a8ad2c374340fd2d82987d8
+✓ assertionId: 0x9e5ced6a6835749c5acd4db9698dd1b271630661be68a87526b204653b37e201
 
 ────────────────────────────────────────────────────────────
   步骤 7: User2 质疑提案（OO.disputeAssertion）
@@ -92,5 +96,7 @@
   User2（质疑者）    ：DVM bond 奖励 +100.00 USDC + NO 赎回 2000.00 USDC
 
 部署的合约：
-  MockOOv3:          0x06a26b95c7C258b347F0Ee18f2de2239308685cB
-  UmaCtfAdapterV3:   0x05F65cA98E24D7A7b82B8E83F90CD7d6f49AfFf3
+  MockOOv3:          0x14C0D48cE2fA5acBb7bfa7d2903B1D993bFCfF73
+  MockFinder:        0xAFf1D2D7844F8640FF6A48C06FF5B81149A4188E
+  UmaCtfAdapterV3:   0x048BFeDc6C88582D5602DA97f8b3D31327a60B02
+

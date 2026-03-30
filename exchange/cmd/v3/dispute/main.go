@@ -176,5 +176,6 @@ func main() {
 	fmt.Println()
 	fmt.Println("部署的合约：")
 	fmt.Printf("  MockOOv3:          %s\n", ctx.OOAddr.Hex())
+	fmt.Printf("  MockFinder:        %s\n", ctx.FinderAddr.Hex())
 	fmt.Printf("  UmaCtfAdapterV3:   %s\n", ctx.AdapterAddr.Hex())
 }

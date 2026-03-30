@@ -129,5 +129,6 @@ func main() {
 	ex.Div("OOv3 正常结算流程演示完成！")
 	fmt.Println("\n部署的合约：")
 	fmt.Printf("  MockOOv3:          %s\n", ctx.OOAddr.Hex())
+	fmt.Printf("  MockFinder:        %s\n", ctx.FinderAddr.Hex())
 	fmt.Printf("  UmaCtfAdapterV3:   %s\n", ctx.AdapterAddr.Hex())
 }

@@ -8,22 +8,28 @@ pragma solidity ^0.8.20;
  *         实现预测市场的去中心化结算。
  *
  * 与 UmaCtfAdapter（OOv2 版本）的主要差异：
+ *   - 构造函数接收 _finder（而非直接传入 _oo），通过 Finder 动态查询 OO 地址
  *   - 初始化时只准备 CTF 条件，不发起 OO 价格请求
  *   - proposeResolution() 调用 OO.assertTruth() 提交断言（含 liveness）
  *   - settle() 在 liveness 结束后触发 OO.settleAssertion()
  *   - 通过 assertionResolvedCallback() 回调驱动 CTF 结算
  *   - 争议时 DVM 直接裁决（mockDvmResolve），无需二次提案
  *
+ * Finder 机制说明：
+ *   官方 UmaCtfAdapter 同样通过 Finder 查找 OO 地址，好处是：
+ *   当 UMA 升级 OO 时（v2 → v3），只需在 Finder 中更新一条记录，
+ *   无需重新部署 Adapter 合约。本实现复现了这一机制。
+ *
  * 工作流程（正常）：
  *   1. initialize()         → CTF.prepareCondition()
- *   2. proposeResolution()  → OO.assertTruth()（提案者质押 bond）
- *   3. settle()             → OO.settleAssertion()
+ *   2. proposeResolution()  → _oo().assertTruth()（提案者质押 bond）
+ *   3. settle()             → _oo().settleAssertion()
  *                           → assertionResolvedCallback(true)
  *                           → CTF.reportPayouts([1e18,0] 或 [0,1e18])
  *
  * 工作流程（争议）：
  *   1. initialize()         → CTF.prepareCondition()
- *   2. proposeResolution()  → OO.assertTruth()
+ *   2. proposeResolution()  → _oo().assertTruth()
  *   3. OO.disputeAssertion()→ assertionDisputedCallback()（状态记录）
  *   4. OO.mockDvmResolve()  → assertionResolvedCallback(false)
  *                           → CTF.reportPayouts（结果取反）
@@ -57,6 +63,10 @@ interface IOptimisticOracleV3 {
     function settleAssertion(bytes32 assertionId) external;
 }
 
+interface IFinder {
+    function getImplementationAddress(bytes32 interfaceName) external view returns (address);
+}
+
 contract UmaCtfAdapterV3 {
     // ─── 数据结构 ─────────────────────────────────────────────────────────
 
@@ -73,13 +83,16 @@ contract UmaCtfAdapterV3 {
 
     // ─── 状态变量 ─────────────────────────────────────────────────────────
 
-    IConditionalTokens  public immutable ctf;
-    IOptimisticOracleV3 public immutable oo;
-    IERC20              public immutable usdc;
-    address             public immutable admin;
+    IConditionalTokens public immutable ctf;
+    IFinder            public immutable finder;
+    IERC20             public immutable usdc;
+    address            public immutable admin;
 
     // OOv3 identifier，固定为 "ASSERT_TRUTH"（右填充零到 32 字节）
     bytes32 public constant ASSERT_TRUTH = bytes32("ASSERT_TRUTH");
+
+    // Finder 中注册的 OOv3 接口名称（右填充零到 32 字节）
+    bytes32 public constant OO_V3_INTERFACE = bytes32("OptimisticOracleV3");
 
     mapping(bytes32 => Question) public questions;
     // assertionId → questionId，用于回调中反查对应市场
@@ -113,15 +126,25 @@ contract UmaCtfAdapterV3 {
     // ─── 构造函数 ─────────────────────────────────────────────────────────
 
     /**
-     * @param _ctf   ConditionalTokens 地址（复用 BSC Testnet 已有部署）
-     * @param _oo    MockOptimisticOracleV3 地址（每次测试自部署）
-     * @param _usdc  USDC（ChildERC20）地址，bond 货币
+     * @param _ctf     ConditionalTokens 地址（复用 BSC Testnet 已有部署）
+     * @param _finder  MockFinder 地址（通过 Finder 动态查询 OO 地址，复现官方升级机制）
+     * @param _usdc    USDC（ChildERC20）地址，bond 货币
      */
-    constructor(address _ctf, address _oo, address _usdc) {
-        ctf   = IConditionalTokens(_ctf);
-        oo    = IOptimisticOracleV3(_oo);
-        usdc  = IERC20(_usdc);
-        admin = msg.sender;
+    constructor(address _ctf, address _finder, address _usdc) {
+        ctf    = IConditionalTokens(_ctf);
+        finder = IFinder(_finder);
+        usdc   = IERC20(_usdc);
+        admin  = msg.sender;
+    }
+
+    // ─── 内部辅助 ─────────────────────────────────────────────────────────
+
+    /**
+     * @notice 通过 Finder 动态查询当前 OOv3 地址。
+     * @dev 每次调用都会查询 Finder，因此 OO 升级后无需重新部署 Adapter。
+     */
+    function _oo() internal view returns (IOptimisticOracleV3) {
+        return IOptimisticOracleV3(finder.getImplementationAddress(OO_V3_INTERFACE));
     }
 
     // ─── 核心函数 ─────────────────────────────────────────────────────────
@@ -163,7 +186,7 @@ contract UmaCtfAdapterV3 {
     /**
      * @notice 提案市场结果
      * @dev 调用前：msg.sender 须 approve 本合约花费 proposalBond 数量的 USDC。
-     *      本合约作为 asserter 和 callbackRecipient 调用 OOv3.assertTruth()。
+     *      本合约作为 asserter 和 callbackRecipient 调用 _oo().assertTruth()。
      *      liveness 窗口内任何人可调用 OO.disputeAssertion() 质疑。
      *
      * @param questionId  市场 ID
@@ -174,6 +197,8 @@ contract UmaCtfAdapterV3 {
         require(q.ancillaryData.length > 0, "Question not found");
         require(!q.proposed,               "Already proposed");
         require(!q.resolved,               "Already resolved");
+
+        IOptimisticOracleV3 oo = _oo();
 
         // 从提案者拉取 bond，授权 OO 使用
         usdc.transferFrom(msg.sender, address(this), q.proposalBond);
@@ -211,7 +236,7 @@ contract UmaCtfAdapterV3 {
     /**
      * @notice 结算断言（无质疑路径）
      * @dev liveness 结束后任何人可调用。
-     *      内部调用 OO.settleAssertion()，OO 返还 bond 给本合约（asserter），
+     *      内部调用 _oo().settleAssertion()，OO 返还 bond 给本合约（asserter），
      *      然后触发 assertionResolvedCallback(assertionId, true)。
      *
      * @param questionId  市场 ID
@@ -220,15 +245,15 @@ contract UmaCtfAdapterV3 {
         Question storage q = questions[questionId];
         require(q.proposed,  "Not proposed yet");
         require(!q.resolved, "Already resolved");
-        oo.settleAssertion(q.assertionId);
+        _oo().settleAssertion(q.assertionId);
     }
 
     // ─── OOv3 回调 ────────────────────────────────────────────────────────
 
     /**
      * @notice OOv3 结算回调（由 OO 合约调用）
-     * @dev 无质疑路径：OO.settleAssertion() → 本函数（assertedTruthfully=true）
-     *      争议路径：OO.mockDvmResolve(false) → 本函数（assertedTruthfully=false）
+     * @dev 无质疑路径：_oo().settleAssertion() → 本函数（assertedTruthfully=true）
+     *      争议路径：_oo().mockDvmResolve(false) → 本函数（assertedTruthfully=false）
      *
      *      assertedTruthfully=true  → 断言成立，采用提案结果
      *      assertedTruthfully=false → 断言被 DVM 推翻，结果取反
@@ -240,7 +265,7 @@ contract UmaCtfAdapterV3 {
         bytes32 assertionId,
         bool    assertedTruthfully
     ) external {
-        require(msg.sender == address(oo), "Only oracle");
+        require(msg.sender == address(_oo()), "Only oracle");
 
         bytes32 questionId = assertionToQuestion[assertionId];
         Question storage q = questions[questionId];
@@ -279,7 +304,7 @@ contract UmaCtfAdapterV3 {
      * @param assertionId  被质疑的断言 ID
      */
     function assertionDisputedCallback(bytes32 assertionId) external {
-        require(msg.sender == address(oo), "Only oracle");
+        require(msg.sender == address(_oo()), "Only oracle");
         bytes32 questionId = assertionToQuestion[assertionId];
         emit QuestionDisputed(questionId, assertionId);
     }
@@ -294,5 +319,10 @@ contract UmaCtfAdapterV3 {
     /// @notice 获取当前提案的 assertionId（质疑流程中需要此 ID）
     function getAssertionId(bytes32 questionId) external view returns (bytes32) {
         return questions[questionId].assertionId;
+    }
+
+    /// @notice 获取当前 Finder 中注册的 OO 地址（用于验证 Finder 查找是否正确）
+    function getOOAddress() external view returns (address) {
+        return finder.getImplementationAddress(OO_V3_INTERFACE);
     }
 }
