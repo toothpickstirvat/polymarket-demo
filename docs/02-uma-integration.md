@@ -1,10 +1,23 @@
-# UMA Oracle 接入详解与适配层分析
+# UMA Oracle接入详解与适配层分析
 
-> 本文档深入分析 UMA OOv2/OOv3 的接入方式，及 Polymarket 适配层的实现细节，并给出 BSC 测试网的接入策略。
+> 本文档深入分析UMA OOv2/OOv3的接入方式，及Polymarket适配层的实现细节，并给出BSC测试网的接入策略。
 
 ---
 
-## 一、UMA OOv2 vs OOv3 对比（Polymarket 用哪个？）
+## 一、UMA 是什么？与 Polymarket 的关系
+
+**UMA（Universal Market Access）是独立的第三方去中心化预言机协议**，与Polymarket是两个完全独立的团队和项目。
+
+- UMA有自己的治理代币（$UMA）、DVM（数据验证机制）和代币持有者投票社区。任何协议都可以接入UMA进行争议仲裁。
+- Polymarket是预测市场平台，选择UMA作为价格仲裁层，但自己维护CTFExchange和UmaCtfAdapter等合约。
+
+两者的关系类似**甲方与基础设施供应商**：Polymarket 用UMA的OOv2解决"谁提案、谁质疑、最终谁说了算"的问题，但DVM投票由UMA代币持有者完成，Polymarket无法干预仲裁结果。
+
+这也是本项目用`MockOOv2` + `mockDvmSettle()`的原因——在测试环境中模拟这个本来由UMA社区治理的仲裁过程。
+
+---
+
+## 二、UMA OOv2 vs OOv3 对比（Polymarket用哪个？）
 
 | 特性                | OOv2                       | OOv3                                                          |
 |-------------------|----------------------------|---------------------------------------------------------------|
@@ -20,7 +33,7 @@
 
 ---
 
-## 二、UMA OOv2 工作流程（Polymarket 实际流程）
+## 三、UMA OOv2 工作流程（Polymarket 实际流程）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -66,7 +79,7 @@
 
 ---
 
-## 三、UMA OOv3 工作流程（推荐新项目使用）
+## 四、UMA OOv3 工作流程（推荐新项目使用）
 
 OOv3 更简洁，**断言者主动推送结果**，无需先请求。
 
@@ -197,7 +210,7 @@ contract MyPredictionMarket is IOptimisticOracleV3CallbackRecipient {
 
 ---
 
-## 四、UmaCtfAdapter核心适配逻辑解析
+## 五、UmaCtfAdapter核心适配逻辑解析
 
 ### 4.1 OOv2价格 → CTF Payouts转换
 
@@ -252,7 +265,7 @@ OOv2的ancillaryData是UTF-8字节，Polymarket采用以下格式：
 
 ---
 
-## 五、Bond经济机制
+## 六、Bond经济机制
 
 ### 5.1 各方资金流向
 
@@ -281,7 +294,7 @@ OOv2的ancillaryData是UTF-8字节，Polymarket采用以下格式：
 
 ---
 
-## 六、BSC测试网的UMA现状与解决方案
+## 七、BSC测试网的UMA现状与解决方案
 
 ### 6.1 UMA部署现状
 
