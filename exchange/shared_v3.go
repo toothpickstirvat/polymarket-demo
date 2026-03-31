@@ -78,17 +78,18 @@ const AdapterV3ABI = `[
 // RunCommonSetupV3 执行步骤 1-5（OOv3 版本），返回包含所有链上状态的 MarketContext。
 //
 // 与 RunCommonSetup（OOv2）的差异：
-//   步骤 1：部署 MockOOv3 → 部署 MockFinder → 向 Finder 注册 OO 地址
-//           → 部署 UmaCtfAdapterV3（_ctf, _finder, _usdc）
-//           无需部署 MockAddressWhitelist（OOv3 不需要抵押品白名单）
-//           Finder 机制：adapter 不直接持有 OO 地址，而是每次通过 Finder 查询，
-//           复现官方 OO 升级机制（升级 OO 时只需更新 Finder，无需重部署 adapter）
-//   步骤 3：adapter.initialize(ancillaryData, proposalBond, liveness)
-//           无 rewardToken / reward 参数；不发起 OO 价格请求
-//   返回值：MarketContext.OOContract 绑定至 OoV3ABI
-//           MarketContext.AdapterContract 绑定至 AdapterV3ABI
-//           MarketContext.FinderAddr 存储 MockFinder 地址
-//           MarketContext.RequestTime / Identifier 为零值（OOv3 不使用）
+//
+//	步骤 1：部署 MockOOv3 → 部署 MockFinder → 向 Finder 注册 OO 地址
+//	        → 部署 UmaCtfAdapterV3（_ctf, _finder, _usdc）
+//	        无需部署 MockAddressWhitelist（OOv3 不需要抵押品白名单）
+//	        Finder 机制：adapter 不直接持有 OO 地址，而是每次通过 Finder 查询，
+//	        复现官方 OO 升级机制（升级 OO 时只需更新 Finder，无需重部署 adapter）
+//	步骤 3：adapter.initialize(ancillaryData, proposalBond, liveness)
+//	        无 rewardToken / reward 参数；不发起 OO 价格请求
+//	返回值：MarketContext.OOContract 绑定至 OoV3ABI
+//	        MarketContext.AdapterContract 绑定至 AdapterV3ABI
+//	        MarketContext.FinderAddr 存储 MockFinder 地址
+//	        MarketContext.RequestTime / Identifier 为零值（OOv3 不使用）
 //
 // 步骤 2/4/5 与 OOv2 版本完全相同（铸造 USDC、拆分头寸、订单撮合）。
 func RunCommonSetupV3(configPath string) *MarketContext {
@@ -377,4 +378,3 @@ func RunCommonSetupV3(configPath string) *MarketContext {
 		YesTokenId: yesTokenId, NoTokenId: noTokenId,
 	}
 }
-
